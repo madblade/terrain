@@ -1,3 +1,6 @@
+import {Random} from "./terrain/random";
+
+let randomGenerator = new Random('language');
 
 function shuffled(list)
 {
@@ -16,7 +19,8 @@ function shuffled(list)
 
 function choose(list, exponent) {
     exponent = exponent || 1;
-    return list[Math.floor(Math.pow(Math.random(), exponent) * list.length)];
+    let r = randomGenerator.uniform();
+    return list[Math.floor(Math.pow(r, exponent) * list.length)];
 }
 
 function randrange(lo, hi) {
@@ -24,7 +28,8 @@ function randrange(lo, hi) {
         hi = lo;
         lo = 0;
     }
-    return Math.floor(Math.random() * (hi - lo)) + lo;
+    let r = randomGenerator.uniform();
+    return Math.floor(r * (hi - lo)) + lo;
 }
 
 function join(list, sep) {
@@ -61,7 +66,8 @@ function makeSyllable(lang)
             let ptype = lang.structure[i];
             if (lang.structure[i+1] === '?') {
                 i++;
-                if (Math.random() < 0.5) {
+                let r = randomGenerator.uniform();
+                if (r < 0.5) {
                     continue;
                 }
             }
@@ -151,19 +157,19 @@ function makeName(lang, key)
     lang.definite = lang.definite || getMorpheme(lang, 'the');
     while (true) {
         let name = null;
-        if (Math.random() < 0.5) {
+        if (randomGenerator.uniform() < 0.5) {
             name = capitalize(getWord(lang, key));
         } else {
-            let w1 = capitalize(getWord(lang, Math.random() < 0.6 ? key : ''));
-            let w2 = capitalize(getWord(lang, Math.random() < 0.6 ? key : ''));
+            let w1 = capitalize(getWord(lang, randomGenerator.uniform() < 0.6 ? key : ''));
+            let w2 = capitalize(getWord(lang, randomGenerator.uniform() < 0.6 ? key : ''));
             if (w1 === w2) continue;
-            if (Math.random() > 0.5) {
+            if (randomGenerator.uniform() > 0.5) {
                 name = join([w1, w2], lang.joiner);
             } else {
                 name = join([w1, lang.genitive, w2], lang.joiner);
             }
         }
-        if (Math.random() < 0.1) {
+        if (randomGenerator.uniform() < 0.1) {
             name = join([lang.definite, name], lang.joiner);
         }
 

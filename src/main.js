@@ -3,7 +3,6 @@ import * as d3 from 'd3';
 import {
     cityScore,
     cleanCoast,
-    cone,
     contour,
     defaultExtent,
     defaultParams,
@@ -12,27 +11,35 @@ import {
     erosionRate,
     fillSinks,
     generateCoast,
-    generateGoodMesh,
-    generatePoints,
     getBorders,
     getRivers, getTerritories,
-    improvePoints,
-    makeMesh,
-    mountains,
-    normalize,
-    peaky, placeCity,
-    randomVector,
-    relax,
-    runif,
+    placeCity,
     setSeaLevel,
-    slope,
     visualizeCities,
     visualizePoints,
     visualizeSlopes,
     visualizeVoronoi,
+    runif,
+    randomVector,
+} from './terrain/terrain';
+
+import {
     zero,
-    add
-} from "./terrain";
+    slope,
+    cone,
+    add,
+    mountains,
+    peaky,
+    normalize,
+    relax
+} from './terrain/rough';
+
+import {
+    generateGoodMesh,
+    generatePoints,
+    makeMesh,
+    improvePoints,
+} from './terrain/mesh';
 
 function addSVG(div) {
     return div.insert("svg", ":first-child")

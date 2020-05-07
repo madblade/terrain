@@ -3,40 +3,38 @@
 
 import * as d3 from 'd3';
 import {
-    makeName, makeRandomLanguage
-} from './language';
+    makeName,
+    makeRandomLanguage
+} from '../language';
 import PriorityQueue from 'js-priority-queue';
 
+import {
+    generateGoodMesh,
+} from './mesh';
+
+import {
+    zero,
+    slope,
+    cone,
+    add,
+    mountains,
+    peaky,
+    relax,
+    map
+} from './rough';
+import { Random } from "./random";
+
+let mainRandomGenerator = new Random('terrain');
+function randomVector(scale)
+{
+    let r = mainRandomGenerator.rnorm(); // rnorm();
+    return [scale * r, scale * r];
+}
 function runif(lo, hi)
 {
-    return lo + Math.random() * (hi - lo);
-}
-
-let rnorm = (function () {
-    let z2 = null;
-    function rnorm() {
-        if (z2 != null) {
-            let tmp = z2;
-            z2 = null;
-            return tmp;
-        }
-        let x1 = 0;
-        let x2 = 0;
-        let w = 2.0;
-        while (w >= 1) {
-            x1 = runif(-1, 1);
-            x2 = runif(-1, 1);
-            w = x1 * x1 + x2 * x2;
-        }
-        w = Math.sqrt(-2 * Math.log(w) / w);
-        z2 = x2 * w;
-        return x1 * w;
-    }
-    return rnorm;
-})();
-
-function randomVector(scale) {
-    return [scale * rnorm(), scale * rnorm()];
+    let r = mainRandomGenerator.uniform();
+    return lo + r * (hi - lo);
+    // return lo + Math.random() * (hi - lo);
 }
 
 let defaultExtent = {
@@ -44,112 +42,6 @@ let defaultExtent = {
     height: 1
 };
 
-function generatePoints(n, extent) {
-    extent = extent || defaultExtent;
-    let pts = [];
-    for (let i = 0; i < n; i++) {
-        pts.push([(Math.random() - 0.5) * extent.width, (Math.random() - 0.5) * extent.height]);
-    }
-    return pts;
-}
-
-function centroid(pts) {
-    let x = 0;
-    let y = 0;
-    for (let i = 0; i < pts.length; i++) {
-        x += pts[i][0];
-        y += pts[i][1];
-    }
-    return [x/pts.length, y/pts.length];
-}
-
-function improvePoints(pts, n, extent) {
-    n = n || 1;
-    extent = extent || defaultExtent;
-    for (let i = 0; i < n; i++) {
-        pts = voronoi(pts, extent)
-            .polygons(pts)
-            .map(centroid);
-    }
-    return pts;
-}
-
-function generateGoodPoints(n, extent) {
-    extent = extent || defaultExtent;
-    let pts = generatePoints(n, extent);
-    pts = pts.sort(function (a, b) {
-        return a[0] - b[0];
-    });
-    return improvePoints(pts, 1, extent);
-}
-
-function voronoi(pts, extent) {
-    extent = extent || defaultExtent;
-    let w = extent.width/2;
-    let h = extent.height/2;
-    return d3.voronoi().extent([[-w, -h], [w, h]])(pts);
-}
-
-function makeMesh(pts, extent) {
-    extent = extent || defaultExtent;
-    let vor = voronoi(pts, extent);
-    let vxs = [];
-    let vxids = {};
-    let adj = [];
-    let edges = [];
-    let tris = [];
-    for (let i = 0; i < vor.edges.length; i++) {
-        let e = vor.edges[i];
-        if (e == undefined) continue;
-        let e0 = vxids[e[0]];
-        let e1 = vxids[e[1]];
-        if (e0 == undefined) {
-            e0 = vxs.length;
-            vxids[e[0]] = e0;
-            vxs.push(e[0]);
-        }
-        if (e1 == undefined) {
-            e1 = vxs.length;
-            vxids[e[1]] = e1;
-            vxs.push(e[1]);
-        }
-        adj[e0] = adj[e0] || [];
-        adj[e0].push(e1);
-        adj[e1] = adj[e1] || [];
-        adj[e1].push(e0);
-        edges.push([e0, e1, e.left, e.right]);
-        tris[e0] = tris[e0] || [];
-        if (!tris[e0].includes(e.left)) tris[e0].push(e.left);
-        if (e.right && !tris[e0].includes(e.right)) tris[e0].push(e.right);
-        tris[e1] = tris[e1] || [];
-        if (!tris[e1].includes(e.left)) tris[e1].push(e.left);
-        if (e.right && !tris[e1].includes(e.right)) tris[e1].push(e.right);
-    }
-
-    let mesh = {
-        pts: pts,
-        vor: vor,
-        vxs: vxs,
-        adj: adj,
-        tris: tris,
-        edges: edges,
-        extent: extent
-    }
-    mesh.map = function (f) {
-        let mapped = vxs.map(f);
-        mapped.mesh = mesh;
-        return mapped;
-    }
-    return mesh;
-}
-
-
-
-function generateGoodMesh(n, extent) {
-    extent = extent || defaultExtent;
-    let pts = generateGoodPoints(n, extent);
-    return makeMesh(pts, extent);
-}
 function isedge(mesh, i) {
     return (mesh.adj[i].length < 3);
 }
@@ -186,84 +78,6 @@ function quantile(h, q) {
     return d3.quantile(sortedh, q);
 }
 
-function zero(mesh) {
-    let z = [];
-    for (let i = 0; i < mesh.vxs.length; i++) {
-        z[i] = 0;
-    }
-    z.mesh = mesh;
-    return z;
-}
-
-function slope(mesh, direction) {
-    return mesh.map(function (x) {
-        return x[0] * direction[0] + x[1] * direction[1];
-    });
-}
-
-function cone(mesh, slope) {
-    return mesh.map(function (x) {
-        return Math.pow(x[0] * x[0] + x[1] * x[1], 0.5) * slope;
-    });
-}
-
-function map(h, f) {
-    let newh = h.map(f);
-    newh.mesh = h.mesh;
-    return newh;
-}
-
-function normalize(h) {
-    let lo = d3.min(h);
-    let hi = d3.max(h);
-    return map(h, function (x) {return (x - lo) / (hi - lo)});
-}
-
-function peaky(h) {
-    return map(normalize(h), Math.sqrt);
-}
-
-function add() {
-    let n = arguments[0].length;
-    let newvals = zero(arguments[0].mesh);
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < arguments.length; j++) {
-            newvals[i] += arguments[j][i];
-        }
-    }
-    return newvals;
-}
-
-function mountains(mesh, n, r) {
-    r = r || 0.05;
-    let mounts = [];
-    for (let i = 0; i < n; i++) {
-        mounts.push([mesh.extent.width * (Math.random() - 0.5), mesh.extent.height * (Math.random() - 0.5)]);
-    }
-    let newvals = zero(mesh);
-    for (let i = 0; i < mesh.vxs.length; i++) {
-        let p = mesh.vxs[i];
-        for (let j = 0; j < n; j++) {
-            let m = mounts[j];
-            newvals[i] += Math.pow(Math.exp(-((p[0] - m[0]) * (p[0] - m[0]) + (p[1] - m[1]) * (p[1] - m[1])) / (2 * r * r)), 2);
-        }
-    }
-    return newvals;
-}
-
-function relax(h) {
-    let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        let nbs = neighbours(h.mesh, i);
-        if (nbs.length < 3) {
-            newh[i] = 0;
-            continue;
-        }
-        newh[i] = d3.mean(nbs.map(function (j) {return h[j]}));
-    }
-    return newh;
-}
-
 function downhill(h) {
     if (h.downhill) return h.downhill;
     function downfrom(i) {
@@ -297,7 +111,7 @@ function findSinks(h) {
                 sinks[i] = -2;
                 break;
             }
-            if (dh[node] == -1) {
+            if (dh[node] === -1) {
                 sinks[i] = node;
                 break;
             }
@@ -306,21 +120,26 @@ function findSinks(h) {
     }
 }
 
-function fillSinks(h, epsilon) {
+// TODO reduce gc
+function fillSinks(h, epsilon)
+{
     epsilon = epsilon || 1e-5;
     let infinity = 999999;
     let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
+    for (let i = 0; i < h.length; i++)
+    {
         if (isnearedge(h.mesh, i)) {
             newh[i] = h[i];
         } else {
             newh[i] = infinity;
         }
     }
-    while (true) {
+    while (true)
+    {
         let changed = false;
-        for (let i = 0; i < h.length; i++) {
-            if (newh[i] == h[i]) continue;
+        for (let i = 0; i < h.length; i++)
+        {
+            if (newh[i] === h[i]) continue;
             let nbs = neighbours(h.mesh, i);
             for (let j = 0; j < nbs.length; j++) {
                 if (h[i] >= newh[nbs[j]] + epsilon) {
@@ -399,7 +218,8 @@ function erode(h, amount) {
     return newh;
 }
 
-function doErosion(h, amount, n) {
+function doErosion(h, amount, n)
+{
     n = n || 1;
     h = fillSinks(h);
     for (let i = 0; i < n; i++) {
@@ -425,7 +245,7 @@ function cleanCoast(h, iters) {
         for (let i = 0; i < h.length; i++) {
             newh[i] = h[i];
             let nbs = neighbours(h.mesh, i);
-            if (h[i] <= 0 || nbs.length != 3) continue;
+            if (h[i] <= 0 || nbs.length !== 3) continue;
             let count = 0;
             let best = -999999;
             for (let j = 0; j < nbs.length; j++) {
@@ -444,7 +264,7 @@ function cleanCoast(h, iters) {
         for (let i = 0; i < h.length; i++) {
             newh[i] = h[i];
             let nbs = neighbours(h.mesh, i);
-            if (h[i] > 0 || nbs.length != 3) continue;
+            if (h[i] > 0 || nbs.length !== 3) continue;
             let count = 0;
             let best = 999999;
             for (let j = 0; j < nbs.length; j++) {
@@ -465,7 +285,7 @@ function cleanCoast(h, iters) {
 
 function trislope(h, i) {
     let nbs = neighbours(h.mesh, i);
-    if (nbs.length != 3) return [0,0];
+    if (nbs.length !== 3) return [0,0];
     let p0 = h.mesh.vxs[nbs[0]];
     let p1 = h.mesh.vxs[nbs[1]];
     let p2 = h.mesh.vxs[nbs[2]];
@@ -519,7 +339,7 @@ function contour(h, level) {
     let edges = [];
     for (let i = 0; i < h.mesh.edges.length; i++) {
         let e = h.mesh.edges[i];
-        if (e[3] == undefined) continue;
+        if (e[3] === undefined) continue;
         if (isnearedge(h.mesh, e[0]) || isnearedge(h.mesh, e[1])) continue;
         if ((h[e[0]] > level && h[e[1]] <= level) ||
             (h[e[1]] > level && h[e[0]] <= level)) {
@@ -568,7 +388,7 @@ function getTerritories(render) {
         let diff = 1 + 0.25 * Math.pow(vert/horiz, 2);
         diff += 100 * Math.sqrt(flux[u]);
         if (h[u] <= 0) diff = 100;
-        if ((h[u] > 0) != (h[v] > 0)) return 1000;
+        if ((h[u] > 0) !== (h[v] > 0)) return 1000;
         return horiz * diff;
     }
     for (let i = 0; i < n; i++) {
@@ -584,12 +404,12 @@ function getTerritories(render) {
     }
     while (queue.length) {
         let u = queue.dequeue();
-        if (terr[u.vx] != undefined) continue;
+        if (terr[u.vx] !== undefined) continue;
         terr[u.vx] = u.city;
         let nbs = neighbours(h.mesh, u.vx);
         for (let i = 0; i < nbs.length; i++) {
             let v = nbs[i];
-            if (terr[v] != undefined) continue;
+            if (terr[v] !== undefined) continue;
             let newdist = weight(u.vx, v);
             queue.queue({
                 score: u.score + newdist,
@@ -608,10 +428,10 @@ function getBorders(render) {
     let edges = [];
     for (let i = 0; i < terr.mesh.edges.length; i++) {
         let e = terr.mesh.edges[i];
-        if (e[3] == undefined) continue;
+        if (e[3] === undefined) continue;
         if (isnearedge(terr.mesh, e[0]) || isnearedge(terr.mesh, e[1])) continue;
         if (h[e[0]] < 0 || h[e[1]] < 0) continue;
-        if (terr[e[0]] != terr[e[1]]) {
+        if (terr[e[0]] !== terr[e[1]]) {
             edges.push([e[2], e[3]]);
         }
     }
@@ -634,25 +454,25 @@ function mergeSegments(segs) {
     let path = null;
     while (true)
     {
-        if (path == null) {
+        if (path === null) {
             for (let i = 0; i < segs.length; i++) {
                 if (done[i]) continue;
                 done[i] = true;
                 path = [segs[i][0], segs[i][1]];
                 break;
             }
-            if (path == null) break;
+            if (path === null) break;
         }
         let changed = false;
         for (let i = 0; i < segs.length; i++) {
             if (done[i]) continue;
-            if (adj[path[0]].length == 2 && segs[i][0] == path[0]) {
+            if (adj[path[0]].length === 2 && segs[i][0] === path[0]) {
                 path.unshift(segs[i][1]);
-            } else if (adj[path[0]].length == 2 && segs[i][1] == path[0]) {
+            } else if (adj[path[0]].length === 2 && segs[i][1] === path[0]) {
                 path.unshift(segs[i][0]);
-            } else if (adj[path[path.length - 1]].length == 2 && segs[i][0] == path[path.length - 1]) {
+            } else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1]) {
                 path.push(segs[i][1]);
-            } else if (adj[path[path.length - 1]].length == 2 && segs[i][1] == path[path.length - 1]) {
+            } else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1]) {
                 path.push(segs[i][0]);
             } else {
                 continue;
@@ -679,6 +499,7 @@ function relaxPath(path) {
     newpath.push(path[path.length - 1]);
     return newpath;
 }
+
 function visualizePoints(svg, pts) {
     let circle = svg.selectAll('circle').data(pts);
     circle.enter()
@@ -701,8 +522,8 @@ function makeD3Path(path)
 }
 
 function visualizeVoronoi(svg, field, lo, hi) {
-    if (hi == undefined) hi = d3.max(field) + 1e-9;
-    if (lo == undefined) lo = d3.min(field) - 1e-9;
+    if (hi === undefined) hi = d3.max(field) + 1e-9;
+    if (lo === undefined) lo = d3.min(field) - 1e-9;
     let mappedvals = field.map(function (x) {return x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)});
     let tris = svg.selectAll('path.field').data(field.mesh.tris)
     tris.enter()
@@ -736,11 +557,14 @@ function drawPaths(svg, cls, paths)
         .attr('d', makeD3Path);
 }
 
-function visualizeSlopes(svg, render) {
+function visualizeSlopes(svg, render)
+{
+    let randomGenerator = new Random('vslopes');
     let h = render.h;
     let strokes = [];
     let r = 0.25 / Math.sqrt(h.length);
-    for (let i = 0; i < h.length; i++) {
+    for (let i = 0; i < h.length; i++)
+    {
         if (h[i] <= 0 || isnearedge(h.mesh, i)) continue;
         let nbs = neighbours(h.mesh, i);
         nbs.push(i);
@@ -762,8 +586,8 @@ function visualizeSlopes(svg, render) {
             l /= n;
             if (n > 4) n = 4;
             for (let j = 0; j < n; j++) {
-                let u = rnorm() * r;
-                let v = rnorm() * r;
+                let u = randomGenerator.rnorm() * r;
+                let v = randomGenerator.rnorm() * r;
                 strokes.push([[x+u-l, y+v+l*s], [x+u+l, y+v-l*s]]);
             }
         } else {
@@ -783,7 +607,6 @@ function visualizeSlopes(svg, render) {
         .attr('y2', function (d) {return 1000*d[1][1]})
 }
 
-
 function visualizeContour(h, level) {
     level = level || 0;
     let links = contour(h, level);
@@ -794,7 +617,6 @@ function visualizeBorders(h, cities, n) {
     let links = getBorders(h, getTerritories(h, cities, n));
     drawPaths('border', links);
 }
-
 
 function visualizeCities(svg, render) {
     let cities = render.cities;
@@ -830,7 +652,8 @@ function dropEdge(h, p) {
     return newh;
 }
 
-function generateCoast(params) {
+function generateCoast(params)
+{
     let mesh = generateGoodMesh(params.npts, params.extent);
     let h = add(
         slope(mesh, randomVector(4)),
@@ -853,7 +676,7 @@ function terrCenter(h, terr, city, landOnly) {
     let y = 0;
     let n = 0;
     for (let i = 0; i < terr.length; i++) {
-        if (terr[i] != city) continue;
+        if (terr[i] !== city) continue;
         if (landOnly && h[i] <= 0) continue;
         x += terr.mesh.vxs[i][0];
         y += terr.mesh.vxs[i][1];
@@ -862,7 +685,8 @@ function terrCenter(h, terr, city, landOnly) {
     return [x/n, y/n];
 }
 
-function drawLabels(svg, render) {
+function drawLabels(svg, render)
+{
     let params = render.params;
     let h = render.h;
     let terr = render.terr;
@@ -984,7 +808,7 @@ function drawLabels(svg, render) {
             let v = h.mesh.vxs[j];
             score -= 3000 * Math.sqrt((v[0] - lc[0]) * (v[0] - lc[0]) + (v[1] - lc[1]) * (v[1] - lc[1]));
             score -= 1000 * Math.sqrt((v[0] - oc[0]) * (v[0] - oc[0]) + (v[1] - oc[1]) * (v[1] - oc[1]));
-            if (terr[j] != city) score -= 3000;
+            if (terr[j] !== city) score -= 3000;
             for (let k = 0; k < cities.length; k++) {
                 let u = h.mesh.vxs[cities[k]];
                 if (Math.abs(v[0] - u[0]) < sx &&
@@ -1040,7 +864,9 @@ function drawLabels(svg, render) {
         .raise();
 
 }
-function drawMap(svg, render) {
+
+function drawMap(svg, render)
+{
     render.rivers = getRivers(render.h, 0.01);
     render.coasts = contour(render.h, 0);
     render.terr = getTerritories(render);
@@ -1083,28 +909,20 @@ let defaultParams = {
 }
 
 export {
-    zero, visualizeVoronoi,
+    visualizeVoronoi,
     contour,
     drawPaths,
-    generateGoodMesh,
-    slope,
-    cone,
-    add,
-    randomVector,
-    mountains,
-    peaky,
-    normalize,
-    relax,
     setSeaLevel,
     runif,
-    centroid, cityScore, cleanCoast, distance, doErosion, doMap,
-    downhill, visualizeBorders, visualizeCities, visualizeContour, visualizeDownhill, visualizePoints, visualizeSlopes,
-    voronoi,
+    randomVector,
+    cityScore, cleanCoast, distance, doErosion, doMap,
+    downhill, visualizeBorders, visualizeCities, visualizeContour,
+    visualizeDownhill, visualizePoints, visualizeSlopes,
     getBorders, getFlux, getRivers, getSlope, getTerritories,
-    drawLabels, drawMap, dropEdge, erosionRate, fillSinks, findSinks,
-    generateCoast, generateGoodPoints, generatePoints,
-    makeMesh, makeD3Path,
-    improvePoints,
+    drawLabels, drawMap, dropEdge, erosionRate, fillSinks,
+    generateCoast,
+    makeD3Path,
+    neighbours,
     placeCities,
     placeCity,
     defaultExtent, defaultParams
