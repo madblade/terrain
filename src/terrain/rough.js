@@ -13,7 +13,8 @@ function zero(mesh) {
     return z;
 }
 
-function slope(mesh, direction) {
+function slope(mesh, direction)
+{
     return mesh.map(function (x) {
         return x[0] * direction[0] + x[1] * direction[1];
     });

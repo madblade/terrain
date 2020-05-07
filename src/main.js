@@ -6,10 +6,8 @@ import {
     contour,
     defaultExtent,
     defaultParams,
-    doErosion, doMap, drawMap,
+    doMap, drawMap,
     drawPaths,
-    erosionRate,
-    fillSinks,
     generateCoast,
     getBorders,
     getRivers, getTerritories,
@@ -22,6 +20,11 @@ import {
     runif,
     randomVector,
 } from './terrain/terrain';
+
+import {
+    doErosion,
+    erosionRate, fillSinks,
+} from './terrain/erosion';
 
 import {
     zero,

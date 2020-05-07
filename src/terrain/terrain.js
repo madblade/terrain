@@ -22,6 +22,15 @@ import {
     relax,
     map
 } from './rough';
+
+import {
+    doErosion,
+    downhill,
+    getFlux,
+    fillSinks, trislope,
+} from './erosion';
+
+
 import { Random } from "./random";
 
 let mainRandomGenerator = new Random('terrain');
@@ -63,13 +72,17 @@ function neighbours(mesh, i) {
     return nbs;
 }
 
-function distance(mesh, i, j) {
+function distance(mesh, i, j)
+{
     let p = mesh.vxs[i];
     let q = mesh.vxs[j];
-    return Math.sqrt((p[0] - q[0]) * (p[0] - q[0]) + (p[1] - q[1]) * (p[1] - q[1]));
+    return Math.sqrt(
+        Math.pow(p[0] - q[0], 2) + Math.pow(p[1] - q[1], 2)
+    );
 }
 
-function quantile(h, q) {
+function quantile(h, q)
+{
     let sortedh = [];
     for (let i = 0; i < h.length; i++) {
         sortedh[i] = h[i];
@@ -78,158 +91,8 @@ function quantile(h, q) {
     return d3.quantile(sortedh, q);
 }
 
-function downhill(h) {
-    if (h.downhill) return h.downhill;
-    function downfrom(i) {
-        if (isedge(h.mesh, i)) return -2;
-        let best = -1;
-        let besth = h[i];
-        let nbs = neighbours(h.mesh, i);
-        for (let j = 0; j < nbs.length; j++) {
-            if (h[nbs[j]] < besth) {
-                besth = h[nbs[j]];
-                best = nbs[j];
-            }
-        }
-        return best;
-    }
-    let downs = [];
-    for (let i = 0; i < h.length; i++) {
-        downs[i] = downfrom(i);
-    }
-    h.downhill = downs;
-    return downs;
-}
-
-function findSinks(h) {
-    let dh = downhill(h);
-    let sinks = [];
-    for (let i = 0; i < dh.length; i++) {
-        let node = i;
-        while (true) {
-            if (isedge(h.mesh, node)) {
-                sinks[i] = -2;
-                break;
-            }
-            if (dh[node] === -1) {
-                sinks[i] = node;
-                break;
-            }
-            node = dh[node];
-        }
-    }
-}
-
-// TODO reduce gc
-function fillSinks(h, epsilon)
+function setSeaLevel(h, q)
 {
-    epsilon = epsilon || 1e-5;
-    let infinity = 999999;
-    let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++)
-    {
-        if (isnearedge(h.mesh, i)) {
-            newh[i] = h[i];
-        } else {
-            newh[i] = infinity;
-        }
-    }
-    while (true)
-    {
-        let changed = false;
-        for (let i = 0; i < h.length; i++)
-        {
-            if (newh[i] === h[i]) continue;
-            let nbs = neighbours(h.mesh, i);
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[i] >= newh[nbs[j]] + epsilon) {
-                    newh[i] = h[i];
-                    changed = true;
-                    break;
-                }
-                let oh = newh[nbs[j]] + epsilon;
-                if ((newh[i] > oh) && (oh > h[i])) {
-                    newh[i] = oh;
-                    changed = true;
-                }
-            }
-        }
-        if (!changed) return newh;
-    }
-}
-
-function getFlux(h) {
-    let dh = downhill(h);
-    let idxs = [];
-    let flux = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        idxs[i] = i;
-        flux[i] = 1/h.length;
-    }
-    idxs.sort(function (a, b) {
-        return h[b] - h[a];
-    });
-    for (let i = 0; i < h.length; i++) {
-        let j = idxs[i];
-        if (dh[j] >= 0) {
-            flux[dh[j]] += flux[j];
-        }
-    }
-    return flux;
-}
-
-function getSlope(h) {
-    let dh = downhill(h);
-    let slope = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        let s = trislope(h, i);
-        slope[i] = Math.sqrt(s[0] * s[0] + s[1] * s[1]);
-        continue;
-        if (dh[i] < 0) {
-            slope[i] = 0;
-        } else {
-            slope[i] = (h[i] - h[dh[i]]) / distance(h.mesh, i, dh[i]);
-        }
-    }
-    return slope;
-}
-
-function erosionRate(h) {
-    let flux = getFlux(h);
-    let slope = getSlope(h);
-    let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        let river = Math.sqrt(flux[i]) * slope[i];
-        let creep = slope[i] * slope[i];
-        let total = 1000 * river + creep;
-        total = total > 200 ? 200 : total;
-        newh[i] = total;
-    }
-    return newh;
-}
-
-function erode(h, amount) {
-    let er = erosionRate(h);
-    let newh = zero(h.mesh);
-    let maxr = d3.max(er);
-    for (let i = 0; i < h.length; i++) {
-        newh[i] = h[i] - amount * (er[i] / maxr);
-    }
-    return newh;
-}
-
-function doErosion(h, amount, n)
-{
-    n = n || 1;
-    h = fillSinks(h);
-    for (let i = 0; i < n; i++) {
-        h = erode(h, amount);
-        h = fillSinks(h);
-    }
-    return h;
-}
-
-function setSeaLevel(h, q) {
     let newh = zero(h.mesh);
     let delta = quantile(h, q);
     for (let i = 0; i < h.length; i++) {
@@ -238,7 +101,8 @@ function setSeaLevel(h, q) {
     return newh;
 }
 
-function cleanCoast(h, iters) {
+function cleanCoast(h, iters)
+{
     for (let iter = 0; iter < iters; iter++) {
         let changed = 0;
         let newh = zero(h.mesh);
@@ -281,26 +145,6 @@ function cleanCoast(h, iters) {
         h = newh;
     }
     return h;
-}
-
-function trislope(h, i) {
-    let nbs = neighbours(h.mesh, i);
-    if (nbs.length !== 3) return [0,0];
-    let p0 = h.mesh.vxs[nbs[0]];
-    let p1 = h.mesh.vxs[nbs[1]];
-    let p2 = h.mesh.vxs[nbs[2]];
-
-    let x1 = p1[0] - p0[0];
-    let x2 = p2[0] - p0[0];
-    let y1 = p1[1] - p0[1];
-    let y2 = p2[1] - p0[1];
-
-    let det = x1 * y2 - x2 * y1;
-    let h1 = h[nbs[1]] - h[nbs[0]];
-    let h2 = h[nbs[2]] - h[nbs[0]];
-
-    return [(y2 * h1 - y1 * h2) / det,
-        (-x2 * h1 + x1 * h2) / det];
 }
 
 function cityScore(h, cities) {
@@ -521,7 +365,8 @@ function makeD3Path(path)
     return p.toString();
 }
 
-function visualizeVoronoi(svg, field, lo, hi) {
+function visualizeVoronoi(svg, field, lo, hi)
+{
     if (hi === undefined) hi = d3.max(field) + 1e-9;
     if (lo === undefined) lo = d3.min(field) - 1e-9;
     let mappedvals = field.map(function (x) {return x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)});
@@ -570,7 +415,8 @@ function visualizeSlopes(svg, render)
         nbs.push(i);
         let s = 0;
         let s2 = 0;
-        for (let j = 0; j < nbs.length; j++) {
+        for (let j = 0; j < nbs.length; j++)
+        {
             let slopes = trislope(h, nbs[j]);
             s += slopes[0] / 10;
             s2 += slopes[1];
@@ -640,7 +486,8 @@ function visualizeCities(svg, render) {
         .raise();
 }
 
-function dropEdge(h, p) {
+function dropEdge(h, p)
+{
     p = p || 4
     let newh = zero(h.mesh);
     for (let i = 0; i < h.length; i++) {
@@ -806,8 +653,12 @@ function drawLabels(svg, render)
         for (let j = 0; j < h.length; j++) {
             let score = 0;
             let v = h.mesh.vxs[j];
-            score -= 3000 * Math.sqrt((v[0] - lc[0]) * (v[0] - lc[0]) + (v[1] - lc[1]) * (v[1] - lc[1]));
-            score -= 1000 * Math.sqrt((v[0] - oc[0]) * (v[0] - oc[0]) + (v[1] - oc[1]) * (v[1] - oc[1]));
+            score -= 3000 * Math.sqrt(
+                Math.pow(v[0] - lc[0], 2) + Math.pow(v[1] - lc[1], 2)
+            );
+            score -= 1000 * Math.sqrt(
+                Math.pow(v[0] - oc[0], 2) + Math.pow(v[1] - oc[1], 2)
+            );
             if (terr[j] !== city) score -= 3000;
             for (let k = 0; k < cities.length; k++) {
                 let u = h.mesh.vxs[cities[k]];
@@ -915,11 +766,15 @@ export {
     setSeaLevel,
     runif,
     randomVector,
-    cityScore, cleanCoast, distance, doErosion, doMap,
-    downhill, visualizeBorders, visualizeCities, visualizeContour,
+    isnearedge, isedge,
+    cityScore, cleanCoast, distance,
+    doMap,
+    visualizeBorders, visualizeCities, visualizeContour,
     visualizeDownhill, visualizePoints, visualizeSlopes,
-    getBorders, getFlux, getRivers, getSlope, getTerritories,
-    drawLabels, drawMap, dropEdge, erosionRate, fillSinks,
+    getBorders,
+    getRivers,
+    getTerritories,
+    drawLabels, drawMap, dropEdge,
     generateCoast,
     makeD3Path,
     neighbours,
