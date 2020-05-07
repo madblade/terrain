@@ -1,17 +1,11 @@
 
 import * as d3 from 'd3';
 import {
-    cityScore,
-    cleanCoast,
-    contour,
     defaultExtent,
     defaultParams,
     doMap, drawMap,
     drawPaths,
     generateCoast,
-    getBorders,
-    getRivers, getTerritories,
-    placeCity,
     setSeaLevel,
     visualizeCities,
     visualizePoints,
@@ -22,8 +16,17 @@ import {
 } from './terrain/terrain';
 
 import {
+    cityScore,
+    getBorders,
+    getRivers,
+    getTerritories,
+    placeCity,
+} from './terrain/cities';
+
+import {
     doErosion,
     erosionRate, fillSinks,
+    cleanCoast
 } from './terrain/erosion';
 
 import {
@@ -38,6 +41,7 @@ import {
 } from './terrain/rough';
 
 import {
+    contour,
     generateGoodMesh,
     generatePoints,
     makeMesh,

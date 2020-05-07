@@ -6,10 +6,10 @@ import {
     makeName,
     makeRandomLanguage
 } from '../language';
-import PriorityQueue from 'js-priority-queue';
 
 import {
     generateGoodMesh,
+    isnearedge, contour, distance, neighbours
 } from './mesh';
 
 import {
@@ -20,18 +20,16 @@ import {
     mountains,
     peaky,
     relax,
-    map
 } from './rough';
 
 import {
     doErosion,
-    downhill,
-    getFlux,
-    fillSinks, trislope,
+    fillSinks, trislope, cleanCoast,
 } from './erosion';
 
 
 import { Random } from "./random";
+import {getBorders, getRivers, getTerritories, placeCities} from "./cities";
 
 let mainRandomGenerator = new Random('terrain');
 function randomVector(scale)
@@ -51,36 +49,6 @@ let defaultExtent = {
     height: 1
 };
 
-function isedge(mesh, i) {
-    return (mesh.adj[i].length < 3);
-}
-
-function isnearedge(mesh, i) {
-    let x = mesh.vxs[i][0];
-    let y = mesh.vxs[i][1];
-    let w = mesh.extent.width;
-    let h = mesh.extent.height;
-    return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
-}
-
-function neighbours(mesh, i) {
-    let onbs = mesh.adj[i];
-    let nbs = [];
-    for (let i = 0; i < onbs.length; i++) {
-        nbs.push(onbs[i]);
-    }
-    return nbs;
-}
-
-function distance(mesh, i, j)
-{
-    let p = mesh.vxs[i];
-    let q = mesh.vxs[j];
-    return Math.sqrt(
-        Math.pow(p[0] - q[0], 2) + Math.pow(p[1] - q[1], 2)
-    );
-}
-
 function quantile(h, q)
 {
     let sortedh = [];
@@ -99,249 +67,6 @@ function setSeaLevel(h, q)
         newh[i] = h[i] - delta;
     }
     return newh;
-}
-
-function cleanCoast(h, iters)
-{
-    for (let iter = 0; iter < iters; iter++) {
-        let changed = 0;
-        let newh = zero(h.mesh);
-        for (let i = 0; i < h.length; i++) {
-            newh[i] = h[i];
-            let nbs = neighbours(h.mesh, i);
-            if (h[i] <= 0 || nbs.length !== 3) continue;
-            let count = 0;
-            let best = -999999;
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[nbs[j]] > 0) {
-                    count++;
-                } else if (h[nbs[j]] > best) {
-                    best = h[nbs[j]];
-                }
-            }
-            if (count > 1) continue;
-            newh[i] = best / 2;
-            changed++;
-        }
-        h = newh;
-        newh = zero(h.mesh);
-        for (let i = 0; i < h.length; i++) {
-            newh[i] = h[i];
-            let nbs = neighbours(h.mesh, i);
-            if (h[i] > 0 || nbs.length !== 3) continue;
-            let count = 0;
-            let best = 999999;
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[nbs[j]] <= 0) {
-                    count++;
-                } else if (h[nbs[j]] < best) {
-                    best = h[nbs[j]];
-                }
-            }
-            if (count > 1) continue;
-            newh[i] = best / 2;
-            changed++;
-        }
-        h = newh;
-    }
-    return h;
-}
-
-function cityScore(h, cities) {
-    let score = map(getFlux(h), Math.sqrt);
-    for (let i = 0; i < h.length; i++) {
-        if (h[i] <= 0 || isnearedge(h.mesh, i)) {
-            score[i] = -999999;
-            continue;
-        }
-        score[i] += 0.01 / (1e-9 + Math.abs(h.mesh.vxs[i][0]) - h.mesh.extent.width/2)
-        score[i] += 0.01 / (1e-9 + Math.abs(h.mesh.vxs[i][1]) - h.mesh.extent.height/2)
-        for (let j = 0; j < cities.length; j++) {
-            score[i] -= 0.02 / (distance(h.mesh, cities[j], i) + 1e-9);
-        }
-    }
-    return score;
-}
-function placeCity(render) {
-    render.cities = render.cities || [];
-    let score = cityScore(render.h, render.cities);
-    let newcity = d3.scan(score, d3.descending);
-    render.cities.push(newcity);
-}
-
-function placeCities(render) {
-    let params = render.params;
-    let h = render.h;
-    let n = params.ncities;
-    for (let i = 0; i < n; i++) {
-        placeCity(render);
-    }
-}
-
-function contour(h, level) {
-    level = level || 0;
-    let edges = [];
-    for (let i = 0; i < h.mesh.edges.length; i++) {
-        let e = h.mesh.edges[i];
-        if (e[3] === undefined) continue;
-        if (isnearedge(h.mesh, e[0]) || isnearedge(h.mesh, e[1])) continue;
-        if ((h[e[0]] > level && h[e[1]] <= level) ||
-            (h[e[1]] > level && h[e[0]] <= level)) {
-            edges.push([e[2], e[3]]);
-        }
-    }
-    return mergeSegments(edges);
-}
-
-function getRivers(h, limit) {
-    let dh = downhill(h);
-    let flux = getFlux(h);
-    let links = [];
-    let above = 0;
-    for (let i = 0; i < h.length; i++) {
-        if (h[i] > 0) above++;
-    }
-    limit *= above / h.length;
-    for (let i = 0; i < dh.length; i++) {
-        if (isnearedge(h.mesh, i)) continue;
-        if (flux[i] > limit && h[i] > 0 && dh[i] >= 0) {
-            let up = h.mesh.vxs[i];
-            let down = h.mesh.vxs[dh[i]];
-            if (h[dh[i]] > 0) {
-                links.push([up, down]);
-            } else {
-                links.push([up, [(up[0] + down[0])/2, (up[1] + down[1])/2]]);
-            }
-        }
-    }
-    return mergeSegments(links).map(relaxPath);
-}
-
-function getTerritories(render) {
-    let h = render.h;
-    let cities = render.cities;
-    let n = render.params.nterrs;
-    if (n > render.cities.length) n = render.cities.length;
-    let flux = getFlux(h);
-    let terr = [];
-    let queue = new PriorityQueue({comparator: function (a, b) {return a.score - b.score}});
-    function weight(u, v) {
-        let horiz = distance(h.mesh, u, v);
-        let vert = h[v] - h[u];
-        if (vert > 0) vert /= 10;
-        let diff = 1 + 0.25 * Math.pow(vert/horiz, 2);
-        diff += 100 * Math.sqrt(flux[u]);
-        if (h[u] <= 0) diff = 100;
-        if ((h[u] > 0) !== (h[v] > 0)) return 1000;
-        return horiz * diff;
-    }
-    for (let i = 0; i < n; i++) {
-        terr[cities[i]] = cities[i];
-        let nbs = neighbours(h.mesh, cities[i]);
-        for (let j = 0; j < nbs.length; j++) {
-            queue.queue({
-                score: weight(cities[i], nbs[j]),
-                city: cities[i],
-                vx: nbs[j]
-            });
-        }
-    }
-    while (queue.length) {
-        let u = queue.dequeue();
-        if (terr[u.vx] !== undefined) continue;
-        terr[u.vx] = u.city;
-        let nbs = neighbours(h.mesh, u.vx);
-        for (let i = 0; i < nbs.length; i++) {
-            let v = nbs[i];
-            if (terr[v] !== undefined) continue;
-            let newdist = weight(u.vx, v);
-            queue.queue({
-                score: u.score + newdist,
-                city: u.city,
-                vx: v
-            });
-        }
-    }
-    terr.mesh = h.mesh;
-    return terr;
-}
-
-function getBorders(render) {
-    let terr = render.terr;
-    let h = render.h;
-    let edges = [];
-    for (let i = 0; i < terr.mesh.edges.length; i++) {
-        let e = terr.mesh.edges[i];
-        if (e[3] === undefined) continue;
-        if (isnearedge(terr.mesh, e[0]) || isnearedge(terr.mesh, e[1])) continue;
-        if (h[e[0]] < 0 || h[e[1]] < 0) continue;
-        if (terr[e[0]] !== terr[e[1]]) {
-            edges.push([e[2], e[3]]);
-        }
-    }
-    return mergeSegments(edges).map(relaxPath);
-}
-
-function mergeSegments(segs) {
-    let adj = {};
-    for (let i = 0; i < segs.length; i++) {
-        let seg = segs[i];
-        let a0 = adj[seg[0]] || [];
-        let a1 = adj[seg[1]] || [];
-        a0.push(seg[1]);
-        a1.push(seg[0]);
-        adj[seg[0]] = a0;
-        adj[seg[1]] = a1;
-    }
-    let done = [];
-    let paths = [];
-    let path = null;
-    while (true)
-    {
-        if (path === null) {
-            for (let i = 0; i < segs.length; i++) {
-                if (done[i]) continue;
-                done[i] = true;
-                path = [segs[i][0], segs[i][1]];
-                break;
-            }
-            if (path === null) break;
-        }
-        let changed = false;
-        for (let i = 0; i < segs.length; i++) {
-            if (done[i]) continue;
-            if (adj[path[0]].length === 2 && segs[i][0] === path[0]) {
-                path.unshift(segs[i][1]);
-            } else if (adj[path[0]].length === 2 && segs[i][1] === path[0]) {
-                path.unshift(segs[i][0]);
-            } else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1]) {
-                path.push(segs[i][1]);
-            } else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1]) {
-                path.push(segs[i][0]);
-            } else {
-                continue;
-            }
-            done[i] = true;
-            changed = true;
-            break;
-        }
-        if (!changed) {
-            paths.push(path);
-            path = null;
-        }
-    }
-    return paths;
-}
-
-function relaxPath(path) {
-    let newpath = [path[0]];
-    for (let i = 1; i < path.length - 1; i++) {
-        let newpt = [0.25 * path[i-1][0] + 0.5 * path[i][0] + 0.25 * path[i+1][0],
-            0.25 * path[i-1][1] + 0.5 * path[i][1] + 0.25 * path[i+1][1]];
-        newpath.push(newpt);
-    }
-    newpath.push(path[path.length - 1]);
-    return newpath;
 }
 
 function visualizePoints(svg, pts) {
@@ -576,6 +301,7 @@ function drawLabels(svg, render)
         }
         return pen;
     }
+
     for (let i = 0; i < cities.length; i++) {
         let x = h.mesh.vxs[cities[i]][0];
         let y = h.mesh.vxs[cities[i]][1];
@@ -626,6 +352,7 @@ function drawLabels(svg, render)
         label.size = size;
         citylabels.push(label);
     }
+
     let texts = svg.selectAll('text.city').data(citylabels);
     texts.enter()
         .append('text')
@@ -700,6 +427,7 @@ function drawLabels(svg, render)
             width:sx
         });
     }
+
     texts = svg.selectAll('text.region').data(reglabels);
     texts.enter()
         .append('text')
@@ -713,7 +441,6 @@ function drawLabels(svg, render)
         .style('text-anchor', 'middle')
         .text(function (d) {return d.text})
         .raise();
-
 }
 
 function drawMap(svg, render)
@@ -761,24 +488,16 @@ let defaultParams = {
 
 export {
     visualizeVoronoi,
-    contour,
     drawPaths,
     setSeaLevel,
     runif,
     randomVector,
-    isnearedge, isedge,
-    cityScore, cleanCoast, distance,
+    distance,
     doMap,
     visualizeBorders, visualizeCities, visualizeContour,
     visualizeDownhill, visualizePoints, visualizeSlopes,
-    getBorders,
-    getRivers,
-    getTerritories,
     drawLabels, drawMap, dropEdge,
     generateCoast,
     makeD3Path,
-    neighbours,
-    placeCities,
-    placeCity,
     defaultExtent, defaultParams
 };

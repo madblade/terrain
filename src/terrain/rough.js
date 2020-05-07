@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { neighbours } from "./terrain";
+import { neighbours } from "./mesh";
 import {Random} from "./random";
 
 let randomGenerator = new Random('rough');

@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import {Delaunay} from "d3-delaunay";
-import { defaultExtent } from "./terrain";
+import {defaultExtent} from "./terrain";
 import {Random} from "./random";
 
 let randomGenerator = new Random('mesher');
@@ -124,6 +124,107 @@ function generateGoodMesh(n, extent) {
     return makeMesh(pts, extent);
 }
 
+function mergeSegments(segs)
+{
+    let adj = {};
+    for (let i = 0; i < segs.length; i++) {
+        let seg = segs[i];
+        let a0 = adj[seg[0]] || [];
+        let a1 = adj[seg[1]] || [];
+        a0.push(seg[1]);
+        a1.push(seg[0]);
+        adj[seg[0]] = a0;
+        adj[seg[1]] = a1;
+    }
+    let done = [];
+    let paths = [];
+    let path = null;
+    while (true)
+    {
+        if (path === null) {
+            for (let i = 0; i < segs.length; i++) {
+                if (done[i]) continue;
+                done[i] = true;
+                path = [segs[i][0], segs[i][1]];
+                break;
+            }
+            if (path === null) break;
+        }
+
+        let changed = false;
+        for (let i = 0; i < segs.length; i++) {
+            if (done[i]) continue;
+            if (adj[path[0]].length === 2 && segs[i][0] === path[0]) {
+                path.unshift(segs[i][1]);
+            } else if (adj[path[0]].length === 2 && segs[i][1] === path[0]) {
+                path.unshift(segs[i][0]);
+            } else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1]) {
+                path.push(segs[i][1]);
+            } else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1]) {
+                path.push(segs[i][0]);
+            } else {
+                continue;
+            }
+            done[i] = true;
+            changed = true;
+            break;
+        }
+        if (!changed) {
+            paths.push(path);
+            path = null;
+        }
+    }
+
+    return paths;
+}
+
+function contour(h, level)
+{
+    level = level || 0;
+    let edges = [];
+    for (let i = 0; i < h.mesh.edges.length; i++) {
+        let e = h.mesh.edges[i];
+        if (e[3] === undefined) continue;
+        if (isnearedge(h.mesh, e[0]) || isnearedge(h.mesh, e[1])) continue;
+        if ((h[e[0]] > level && h[e[1]] <= level) ||
+            (h[e[1]] > level && h[e[0]] <= level)) {
+            edges.push([e[2], e[3]]);
+        }
+    }
+
+    return mergeSegments(edges);
+}
+
+function isedge(mesh, i) {
+    return (mesh.adj[i].length < 3);
+}
+
+function isnearedge(mesh, i) {
+    let x = mesh.vxs[i][0];
+    let y = mesh.vxs[i][1];
+    let w = mesh.extent.width;
+    let h = mesh.extent.height;
+    return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
+}
+
+function neighbours(mesh, i) {
+    let onbs = mesh.adj[i];
+    let nbs = [];
+    for (let i = 0; i < onbs.length; i++) {
+        nbs.push(onbs[i]);
+    }
+    return nbs;
+}
+
+function distance(mesh, i, j)
+{
+    let p = mesh.vxs[i];
+    let q = mesh.vxs[j];
+    return Math.sqrt(
+        Math.pow(p[0] - q[0], 2) + Math.pow(p[1] - q[1], 2)
+    );
+}
+
 export {
     generateGoodMesh,
     centroid,
@@ -131,4 +232,5 @@ export {
     generateGoodPoints, generatePoints,
     makeMesh,
     improvePoints,
+    isedge, isnearedge, contour, mergeSegments, distance, neighbours
 }

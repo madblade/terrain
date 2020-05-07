@@ -2,7 +2,7 @@ import {zero} from "./rough";
 import * as d3 from "d3";
 import {
     distance, neighbours, isnearedge, isedge
-} from "./terrain";
+} from "./mesh";
 
 function downhill(h) {
     if (h.downhill) return h.downhill;
@@ -179,10 +179,57 @@ function doErosion(h, amount, n)
     return h;
 }
 
+function cleanCoast(h, iters)
+{
+    for (let iter = 0; iter < iters; iter++) {
+        let changed = 0;
+        let newh = zero(h.mesh);
+        for (let i = 0; i < h.length; i++) {
+            newh[i] = h[i];
+            let nbs = neighbours(h.mesh, i);
+            if (h[i] <= 0 || nbs.length !== 3) continue;
+            let count = 0;
+            let best = -999999;
+            for (let j = 0; j < nbs.length; j++) {
+                if (h[nbs[j]] > 0) {
+                    count++;
+                } else if (h[nbs[j]] > best) {
+                    best = h[nbs[j]];
+                }
+            }
+            if (count > 1) continue;
+            newh[i] = best / 2;
+            changed++;
+        }
+        h = newh;
+        newh = zero(h.mesh);
+        for (let i = 0; i < h.length; i++) {
+            newh[i] = h[i];
+            let nbs = neighbours(h.mesh, i);
+            if (h[i] > 0 || nbs.length !== 3) continue;
+            let count = 0;
+            let best = 999999;
+            for (let j = 0; j < nbs.length; j++) {
+                if (h[nbs[j]] <= 0) {
+                    count++;
+                } else if (h[nbs[j]] < best) {
+                    best = h[nbs[j]];
+                }
+            }
+            if (count > 1) continue;
+            newh[i] = best / 2;
+            changed++;
+        }
+        h = newh;
+    }
+    return h;
+}
+
 export {
     doErosion,
     downhill,
     getFlux,
     getSlope, trislope,
-    erosionRate, fillSinks
+    erosionRate, fillSinks,
+    cleanCoast
 }
