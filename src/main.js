@@ -3,17 +3,21 @@ import * as d3 from 'd3';
 import {
     defaultExtent,
     defaultParams,
-    doMap, drawMap,
-    drawPaths,
+    doMap,
     generateCoast,
     setSeaLevel,
+    runif,
+    randomVector,
+} from './terrain/terrain';
+
+import {
+    drawMap,
+    drawPaths,
     visualizeCities,
     visualizePoints,
     visualizeSlopes,
     visualizeVoronoi,
-    runif,
-    randomVector,
-} from './terrain/terrain';
+} from './terrain/render';
 
 import {
     cityScore,
