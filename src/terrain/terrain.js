@@ -1,11 +1,7 @@
 
-'use strict';
-
 import * as d3 from 'd3';
 
-import {
-    generateGoodMesh,
-} from './mesh';
+import { Random } from './random';
 
 import {
     zero,
@@ -16,20 +12,12 @@ import {
     peaky,
     relax,
 } from './rough';
-
 import {
-    doErosion,
-    fillSinks,
-    cleanCoast,
+    doErosion, fillSinks, cleanCoast,
 } from './erosion';
-
-import { Random } from './random';
-import {
-    placeCities
-} from './cities';
-import {
-    drawMap
-} from './render';
+import { generateGoodMesh } from './mesh';
+import { placeCities } from './cities';
+import { drawMap } from './render';
 
 let mainRandomGenerator = new Random('terrain');
 function randomVector(scale)

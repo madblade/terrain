@@ -1,10 +1,13 @@
-import * as d3 from "d3";
-import { neighbours } from "./mesh";
-import {Random} from "./random";
+import * as d3 from 'd3';
+
+import { Random } from './random';
+
+import { neighbours } from './mesh';
 
 let randomGenerator = new Random('rough');
 
-function zero(mesh) {
+function zero(mesh)
+{
     let z = [];
     for (let i = 0; i < mesh.vxs.length; i++) {
         z[i] = 0;
@@ -26,7 +29,8 @@ function cone(mesh, slope) {
     });
 }
 
-function add() {
+function add()
+{
     let n = arguments[0].length;
     let newvals = zero(arguments[0].mesh);
     for (let i = 0; i < n; i++) {
@@ -47,16 +51,21 @@ function mountains(mesh, n, r)
         let r2 = randomGenerator.uniform();
         mounts.push([mesh.extent.width * (r1 - 0.5), mesh.extent.height * (r2 - 0.5)]);
     }
+
     let newvals = zero(mesh);
-    for (let i = 0; i < mesh.vxs.length; i++) {
+    for (let i = 0; i < mesh.vxs.length; i++)
+    {
         let p = mesh.vxs[i];
         for (let j = 0; j < n; j++) {
             let m = mounts[j];
             newvals[i] +=
                 Math.pow(Math.exp(-
-                    ((p[0] - m[0]) * (p[0] - m[0]) + (p[1] - m[1]) * (p[1] - m[1])) / (2 * r * r)), 2);
+                    (Math.pow(p[0] - m[0], 2) + Math.pow(p[1] - m[1], 2)) / (2 * r * r)),
+                    2
+                );
         }
     }
+
     return newvals;
 }
 

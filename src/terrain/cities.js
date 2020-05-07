@@ -1,11 +1,12 @@
-import {map} from "./rough";
-import {downhill, getFlux} from "./erosion";
-import * as d3 from "d3";
-import PriorityQueue from "js-priority-queue";
+import * as d3 from 'd3';
+
+import PriorityQueue from 'js-priority-queue';
+
+import { map } from './rough';
+import { downhill, getFlux } from './erosion';
 import {
-    distance, isnearedge, neighbours,
-    mergeSegments
-} from "./mesh";
+    distance, isnearedge, neighbours, mergeSegments
+} from './mesh';
 
 function cityScore(h, cities)
 {

@@ -1,7 +1,8 @@
+import * as d3 from 'd3';
+
 import {
     makeName, makeRandomLanguage
 } from '../language';
-import * as d3 from 'd3';
 
 function terrCenter(h, terr, city, landOnly) {
     let x = 0;

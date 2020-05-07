@@ -1,10 +1,12 @@
-import {zero} from "./rough";
 import * as d3 from "d3";
+
+import { zero } from './rough';
 import {
     distance, neighbours, isnearedge, isedge
-} from "./mesh";
+} from './mesh';
 
-function downhill(h) {
+function downhill(h)
+{
     if (h.downhill) return h.downhill;
     function downfrom(i) {
         if (isedge(h.mesh, i)) return -2;
@@ -27,7 +29,8 @@ function downhill(h) {
     return downs;
 }
 
-function findSinks(h) {
+function findSinks(h)
+{
     let dh = downhill(h);
     let sinks = [];
     for (let i = 0; i < dh.length; i++) {
@@ -59,9 +62,11 @@ function fillSinks(h, epsilon)
             newh[i] = infinity;
         }
     }
+
     while (true)
     {
         let changed = false;
+        let oh;
         for (let i = 0; i < h.length; i++)
         {
             if (newh[i] === h[i]) continue;
@@ -72,7 +77,7 @@ function fillSinks(h, epsilon)
                     changed = true;
                     break;
                 }
-                let oh = newh[nbs[j]] + epsilon;
+                oh = newh[nbs[j]] + epsilon;
                 if ((newh[i] > oh) && (oh > h[i])) {
                     newh[i] = oh;
                     changed = true;
@@ -83,9 +88,14 @@ function fillSinks(h, epsilon)
     }
 }
 
-function getFlux(h) {
+let idxs;
+function getFlux(h)
+{
     let dh = downhill(h);
-    let idxs = [];
+    if (!idxs || idxs.length !== h.length) {
+        idxs = new Array(h.length);
+    }
+    // let idxs = [];
     let flux = zero(h.mesh);
     for (let i = 0; i < h.length; i++) {
         idxs[i] = i;
@@ -128,17 +138,17 @@ function trislope(h, i)
 
 function getSlope(h)
 {
-    let dh = downhill(h);
+    // let dh = downhill(h);
     let slope = zero(h.mesh);
     for (let i = 0; i < h.length; i++) {
         let s = trislope(h, i);
         slope[i] = Math.sqrt(s[0] * s[0] + s[1] * s[1]);
-        continue;
-        if (dh[i] < 0) {
-            slope[i] = 0;
-        } else {
-            slope[i] = (h[i] - h[dh[i]]) / distance(h.mesh, i, dh[i]);
-        }
+        // continue;
+        // if (dh[i] < 0) {
+        //     slope[i] = 0;
+        // } else {
+        //     slope[i] = (h[i] - h[dh[i]]) / distance(h.mesh, i, dh[i]);
+        // }
     }
     return slope;
 }
@@ -181,7 +191,8 @@ function doErosion(h, amount, n)
 
 function cleanCoast(h, iters)
 {
-    for (let iter = 0; iter < iters; iter++) {
+    for (let iter = 0; iter < iters; iter++)
+    {
         let changed = 0;
         let newh = zero(h.mesh);
         for (let i = 0; i < h.length; i++) {
@@ -202,6 +213,7 @@ function cleanCoast(h, iters)
             changed++;
         }
         h = newh;
+
         newh = zero(h.mesh);
         for (let i = 0; i < h.length; i++) {
             newh[i] = h[i];

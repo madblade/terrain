@@ -1,7 +1,11 @@
-import * as d3 from "d3";
+
+import * as d3 from 'd3';
+
 import { getBorders, getRivers, getTerritories } from './cities';
 import { Random } from './random';
-import { contour, isnearedge, neighbours } from './mesh';
+import {
+    contour, isnearedge, neighboursCopy
+} from './mesh';
 import { trislope } from './erosion';
 import { zero } from './rough';
 import { runif } from './terrain';
@@ -81,7 +85,7 @@ function visualizeSlopes(svg, render)
     let r = 0.25 / Math.sqrt(h.length);
     for (let i = 0; i < h.length; i++) {
         if (h[i] <= 0 || isnearedge(h.mesh, i)) continue;
-        let nbs = neighbours(h.mesh, i);
+        let nbs = neighboursCopy(h.mesh, i);
         nbs.push(i);
         let s = 0;
         let s2 = 0;

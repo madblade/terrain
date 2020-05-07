@@ -1,5 +1,5 @@
-import {Random} from "./terrain/random";
 
+import { Random } from './terrain/random';
 let randomGenerator = new Random('language');
 
 function shuffled(list)

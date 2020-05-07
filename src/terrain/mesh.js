@@ -1,7 +1,10 @@
-import * as d3 from "d3";
-import {Delaunay} from "d3-delaunay";
-import {defaultExtent} from "./terrain";
-import {Random} from "./random";
+
+import * as d3 from 'd3';
+import { Delaunay } from 'd3-delaunay';
+
+import { Random } from './random';
+
+import { defaultExtent } from './terrain';
 
 let randomGenerator = new Random('mesher');
 
@@ -54,7 +57,6 @@ function voronoi(pts, extent) {
     let h = extent.height/2;
     let layout = d3.voronoi().extent([[-w, -h], [w, h]])(pts);
 
-    console.log('New Voronoi');
     console.log(layout);
     // const delaunay = Delaunay.from(pts);
     // const dln = delaunay.voronoi([-w, -h, w, h]);
@@ -63,7 +65,8 @@ function voronoi(pts, extent) {
     return layout;
 }
 
-function makeMesh(pts, extent) {
+function makeMesh(pts, extent)
+{
     extent = extent || defaultExtent;
     let vor = voronoi(pts, extent);
     let vxs = [];
@@ -71,7 +74,8 @@ function makeMesh(pts, extent) {
     let adj = [];
     let edges = [];
     let tris = [];
-    for (let i = 0; i < vor.edges.length; i++) {
+    for (let i = 0; i < vor.edges.length; i++)
+    {
         let e = vor.edges[i];
         if (e === undefined) continue;
         let e0 = vxids[e[0]];
@@ -207,13 +211,18 @@ function isnearedge(mesh, i) {
     return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
 }
 
-function neighbours(mesh, i) {
+function neighboursCopy(mesh, i) {
     let onbs = mesh.adj[i];
     let nbs = [];
     for (let i = 0; i < onbs.length; i++) {
         nbs.push(onbs[i]);
     }
     return nbs;
+}
+
+function neighbours(mesh, i) {
+    // return neighboursCopy(mesh, i);
+    return mesh.adj[i];
 }
 
 function distance(mesh, i, j)
@@ -232,5 +241,6 @@ export {
     generateGoodPoints, generatePoints,
     makeMesh,
     improvePoints,
-    isedge, isnearedge, contour, mergeSegments, distance, neighbours
+    isedge, isnearedge, contour, mergeSegments, distance, neighbours,
+    neighboursCopy
 }
