@@ -1,4 +1,3 @@
-import * as d3 from 'd3';
 
 import PriorityQueue from 'js-priority-queue';
 

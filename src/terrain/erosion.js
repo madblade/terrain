@@ -1,4 +1,3 @@
-import * as d3 from "d3";
 
 import {max, zero} from './rough';
 import {
@@ -8,6 +7,7 @@ import {
 let Eroder = function()
 {
     this.buffer = [];
+    this.indexBuffer = [];
 }
 
 Eroder.prototype.resetBuffer = function(newBufferLength)
@@ -48,26 +48,6 @@ function downhill(h)
     h.downhill = downs;
     return downs;
 }
-
-// function findSinks(h)
-// {
-//     let dh = downhill(h);
-//     let sinks = [];
-//     for (let i = 0; i < dh.length; i++) {
-//         let node = i;
-//         while (true) {
-//             if (isedge(h.mesh, node)) {
-//                 sinks[i] = -2;
-//                 break;
-//             }
-//             if (dh[node] === -1) {
-//                 sinks[i] = node;
-//                 break;
-//             }
-//             node = dh[node];
-//         }
-//     }
-// }
 
 function fillSinks(h, epsilon)
 {

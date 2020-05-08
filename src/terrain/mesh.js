@@ -76,9 +76,9 @@ function voronoi(pts, extent) {
     let layout = d3.voronoi().extent([[-w, -h], [w, h]])(pts);
 
     console.log(layout);
-    const delaunay = Delaunay.from(pts);
-    const dln = delaunay.voronoi([-w, -h, w, h]);
-    console.log(dln);
+    // const delaunay = Delaunay.from(pts);
+    // const dln = delaunay.voronoi([-w, -h, w, h]);
+    // console.log(dln);
 
     return layout;
 }

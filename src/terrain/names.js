@@ -1,4 +1,3 @@
-import * as d3 from 'd3';
 
 import {
     makeName, makeRandomLanguage
@@ -145,7 +144,6 @@ function drawLabels(svg, render)
             ];
         label.text = text;
         label.size = size;
-        console.log(label.text);
         citylabels.push(label);
     }
 

@@ -1,4 +1,3 @@
-import * as d3 from 'd3';
 
 import { Random } from './random';
 
@@ -11,29 +10,65 @@ let Mapper = function()
     this.buffer = [];
 };
 
-function zero(mesh)
+function copy1D(h, mapper1D)
 {
     let z = [];
-    for (let i = 0; i < mesh.vxs.length; i++) {
-        z[i] = 0;
+    for (let i = 0, l = h.length, v; i < l; i++) {
+        v = h[i];
+        z[i] = mapper1D(v);
+    }
+    z.mesh = h.mesh;
+    return z;
+}
+
+function copy2D(mesh, mapper2D)
+{
+    let vxs = mesh.vxs;
+    let z = [];
+    for (let i = 0, l = vxs.length, v; i < l; i++) {
+        v = vxs[i];
+        z[i] = mapper2D(v);
     }
     z.mesh = mesh;
     return z;
 }
 
-function slope(mesh, direction)
+function zero(mesh)
 {
-    return mesh.map(function (x) {
-        return x[0] * direction[0] + x[1] * direction[1];
-    });
+    let z = [];
+    let vxs =  mesh.vxs;
+    for (let i = 0, l = vxs.length; i < l; i++) {
+        z[i] = 0;
+    }
+    z.mesh = mesh;
+    return z;
+    // return {
+    //     buffer: z,
+    //     mesh: mesh
+    // };
 }
 
-function cone(mesh, slope) {
-    return mesh.map(function (x) {
-        return Math.sqrt(
-            Math.pow(x[0], 2) + Math.pow(x[1], 2)
-        ) * slope;
-    });
+function slope(mesh, direction)
+{
+    let newh = copy2D(mesh,
+        x => x[0] * direction[0] + x[1] * direction[1]
+    );
+    return newh;
+}
+
+function cone(mesh, slope)
+{
+    let newh = copy2D(mesh, x => Math.sqrt(
+        Math.pow(x[0], 2) + Math.pow(x[1], 2)
+        ) * slope
+    );
+    return newh;
+}
+
+function map(h, f)
+{
+    let newh = copy1D(h, f);
+    return newh;
 }
 
 function add()
@@ -74,12 +109,6 @@ function mountains(mesh, n, r)
     }
 
     return newvals;
-}
-
-function map(h, f) {
-    let newh = h.map(f);
-    newh.mesh = h.mesh;
-    return newh;
 }
 
 function min(array)
