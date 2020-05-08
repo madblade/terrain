@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 
-import { zero } from './rough';
+import {max, zero} from './rough';
 import {
     neighbours, isnearedge, isedge
 } from './mesh';
@@ -13,13 +13,9 @@ let Eroder = function()
 Eroder.prototype.resetBuffer = function(newBufferLength)
 {
     if (this.buffer.length !== newBufferLength)
-    {
         this.buffer = new Float64Array(newBufferLength);
-    }
     else
-    {
         this.buffer.fill(0);
-    }
 };
 
 Eroder.prototype.swapBuffers = function(otherObject)
@@ -196,7 +192,7 @@ function erode(h, amount)
 {
     let er = erosionRate(h);
     let newh = zero(h.mesh);
-    let maxr = d3.max(er);
+    let maxr = max(er);
     // TODO amount proportional to distance to the edge
     for (let i = 0; i < h.length; i++)
     {

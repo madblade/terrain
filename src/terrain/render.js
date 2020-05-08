@@ -7,7 +7,7 @@ import {
     contour, isnearedge, neighboursCopy
 } from './mesh';
 import { trislope } from './erosion';
-import { zero } from './rough';
+import {max, min, zero} from './rough';
 import { runif } from './terrain';
 import { drawLabels } from './names';
 
@@ -39,8 +39,8 @@ function makeD3Path(path)
 
 function visualizeVoronoi(svg, field, lo, hi)
 {
-    if (hi === undefined) hi = d3.max(field) + 1e-9;
-    if (lo === undefined) lo = d3.min(field) - 1e-9;
+    if (hi === undefined) hi = max(field) + 1e-9;
+    if (lo === undefined) lo = min(field) - 1e-9;
     let mappedvals = field.map(function (x) {
         return x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)
     });

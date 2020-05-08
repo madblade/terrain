@@ -82,9 +82,30 @@ function map(h, f) {
     return newh;
 }
 
-function normalize(h) {
-    let lo = d3.min(h);
-    let hi = d3.max(h);
+function min(array)
+{
+    let min = Infinity;
+    for (let i = 0, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) < min) min = v;
+    }
+    return min;
+}
+
+function max(array)
+{
+    let max = -Infinity;
+    for (let i = 0, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) > max) max = v;
+    }
+    return max;
+}
+
+function normalize(h)
+{
+    let lo = min(h);
+    let hi = max(h);
     return map(h, function (x) {return (x - lo) / (hi - lo)});
 }
 
@@ -92,7 +113,19 @@ function peaky(h) {
     return map(normalize(h), Math.sqrt);
 }
 
-function relax(h) {
+function mean(indexArray, array)
+{
+    let l = indexArray.length;
+    let m = 0; let n = 0;
+    for (let i = 0; i < l; ++i) {
+        m += array[indexArray[i]];
+        ++n;
+    }
+    return m / n;
+}
+
+function relax(h)
+{
     let newh = zero(h.mesh);
     for (let i = 0; i < h.length; i++) {
         let nbs = neighbours(h.mesh, i);
@@ -100,7 +133,7 @@ function relax(h) {
             newh[i] = 0;
             continue;
         }
-        newh[i] = d3.mean(nbs.map(function (j) {return h[j]}));
+        newh[i] = mean(nbs, h);
     }
     return newh;
 }
@@ -110,6 +143,7 @@ export {
     slope,
     cone,
     add,
+    min, max,
     mountains,
     peaky,
     normalize,

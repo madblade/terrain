@@ -23,6 +23,28 @@ function terrCenter(h, terr, city, landOnly) {
     return [x/n, y/n];
 }
 
+function minArg(array, compare)
+{
+    let minValue = Infinity;
+    let minIndex = 0;
+    for (let i = 1, l = array.length, value; i < l; ++i)
+    {
+        value = array[i];
+        if (
+            minIndex === 0
+            ? compare(value, value) === 0
+            :
+            compare(value, minValue) < 0
+        )
+        {
+            minValue = value;
+            minIndex = i;
+        }
+    }
+
+    return minIndex;
+}
+
 function drawLabels(svg, render)
 {
     let params = render.params;
@@ -116,9 +138,14 @@ function drawLabels(svg, render)
                 y1: y + 1.3*sy
             }
         ];
-        let label = posslabels[d3.scan(posslabels, function (a, b) {return penalty(a) - penalty(b)})];
+
+        let comparator = function (a, b) {return penalty(a) - penalty(b)};
+        let label = posslabels[
+            minArg(posslabels, comparator)
+            ];
         label.text = text;
         label.size = size;
+        console.log(label.text);
         citylabels.push(label);
     }
 

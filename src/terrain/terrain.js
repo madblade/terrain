@@ -38,7 +38,9 @@ function quantile(h, q)
     for (let i = 0; i < h.length; i++) {
         sortedh[i] = h[i];
     }
-    sortedh.sort(d3.ascending);
+    sortedh.sort(
+        // d3.ascending
+    );
     return d3.quantile(sortedh, q);
 }
 

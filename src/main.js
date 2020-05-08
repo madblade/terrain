@@ -42,7 +42,7 @@ import {
     mountains,
     peaky,
     normalize,
-    relax
+    relax, max
 } from './terrain/rough';
 
 import {
@@ -351,7 +351,7 @@ function cityDraw() {
     cityRender.terr = getTerritories(cityRender);
     if (cityViewScore) {
         let score = cityScore(cityRender.h, cityRender.cities);
-        visualizeVoronoi(citySVG, score, d3.max(score) - 0.5);
+        visualizeVoronoi(citySVG, score, max(score) - 0.5);
     } else {
         visualizeVoronoi(citySVG, cityRender.terr);
     }

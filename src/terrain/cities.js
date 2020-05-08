@@ -30,10 +30,26 @@ function cityScore(h, cities)
     return score;
 }
 
-function placeCity(render) {
+function maxArg(array)
+{
+    let max = -Infinity;
+    let maxIndex = 0;
+    for (let i = 1, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) > max)
+        {
+            max = v;
+            maxIndex = i;
+        }
+    }
+    return maxIndex;
+}
+
+function placeCity(render)
+{
     render.cities = render.cities || [];
     let score = cityScore(render.h, render.cities);
-    let newcity = d3.scan(score, d3.descending);
+    let newcity = maxArg(score);
     render.cities.push(newcity);
 }
 
