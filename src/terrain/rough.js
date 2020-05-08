@@ -6,6 +6,11 @@ import { neighbours } from './mesh';
 
 let randomGenerator = new Random('rough');
 
+let Mapper = function()
+{
+    this.buffer = [];
+};
+
 function zero(mesh)
 {
     let z = [];
@@ -25,7 +30,9 @@ function slope(mesh, direction)
 
 function cone(mesh, slope) {
     return mesh.map(function (x) {
-        return Math.pow(x[0] * x[0] + x[1] * x[1], 0.5) * slope;
+        return Math.sqrt(
+            Math.pow(x[0], 2) + Math.pow(x[1], 2)
+        ) * slope;
     });
 }
 

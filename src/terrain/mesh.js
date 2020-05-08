@@ -8,10 +8,28 @@ import { defaultExtent } from './terrain';
 
 let randomGenerator = new Random('mesher');
 
+let Mesher = function()
+{
+    this.buffer = [];
+};
+
 function generatePoints(n, extent)
 {
     extent = extent || defaultExtent;
     let pts = [];
+    // let side = Math.sqrt(n);
+    // for (let x = 0; x < side; ++x) {
+    //     for (let y = 0; y < side; ++y) {
+    //         let r1 = randomGenerator.uniform();
+    //         let r2 = randomGenerator.uniform();
+    //         pts.push(
+    //             [
+    //                 ((x + 0.5 * (r1)) / side - 0.5) * extent.width,
+    //                 ((y + 0.5 * (r2)) / side - 0.5) * extent.height
+    //             ]
+    //         );
+    //     }
+    // }
     for (let i = 0; i < n; i++)
     {
         let r1 = randomGenerator.uniform();
@@ -58,9 +76,9 @@ function voronoi(pts, extent) {
     let layout = d3.voronoi().extent([[-w, -h], [w, h]])(pts);
 
     console.log(layout);
-    // const delaunay = Delaunay.from(pts);
-    // const dln = delaunay.voronoi([-w, -h, w, h]);
-    // console.log(dln);
+    const delaunay = Delaunay.from(pts);
+    const dln = delaunay.voronoi([-w, -h, w, h]);
+    console.log(dln);
 
     return layout;
 }

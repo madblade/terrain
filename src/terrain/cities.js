@@ -8,6 +8,11 @@ import {
     distance, isnearedge, neighbours, mergeSegments
 } from './mesh';
 
+let CityPlacer = function()
+{
+    this.buffer = [];
+}
+
 function cityScore(h, cities)
 {
     let score = map(getFlux(h), Math.sqrt);

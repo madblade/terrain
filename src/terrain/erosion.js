@@ -2,8 +2,32 @@ import * as d3 from "d3";
 
 import { zero } from './rough';
 import {
-    distance, neighbours, isnearedge, isedge
+    neighbours, isnearedge, isedge
 } from './mesh';
+
+let Eroder = function()
+{
+    this.buffer = [];
+}
+
+Eroder.prototype.resetBuffer = function(newBufferLength)
+{
+    if (this.buffer.length !== newBufferLength)
+    {
+        this.buffer = new Float64Array(newBufferLength);
+    }
+    else
+    {
+        this.buffer.fill(0);
+    }
+};
+
+Eroder.prototype.swapBuffers = function(otherObject)
+{
+    let tempBuffer = this.buffer;
+    this.buffer = otherObject.buffer;
+    otherObject.buffer = tempBuffer;
+}
 
 function downhill(h)
 {
@@ -29,25 +53,25 @@ function downhill(h)
     return downs;
 }
 
-function findSinks(h)
-{
-    let dh = downhill(h);
-    let sinks = [];
-    for (let i = 0; i < dh.length; i++) {
-        let node = i;
-        while (true) {
-            if (isedge(h.mesh, node)) {
-                sinks[i] = -2;
-                break;
-            }
-            if (dh[node] === -1) {
-                sinks[i] = node;
-                break;
-            }
-            node = dh[node];
-        }
-    }
-}
+// function findSinks(h)
+// {
+//     let dh = downhill(h);
+//     let sinks = [];
+//     for (let i = 0; i < dh.length; i++) {
+//         let node = i;
+//         while (true) {
+//             if (isedge(h.mesh, node)) {
+//                 sinks[i] = -2;
+//                 break;
+//             }
+//             if (dh[node] === -1) {
+//                 sinks[i] = node;
+//                 break;
+//             }
+//             node = dh[node];
+//         }
+//     }
+// }
 
 function fillSinks(h, epsilon)
 {
@@ -168,11 +192,14 @@ function erosionRate(h)
     return newh;
 }
 
-function erode(h, amount) {
+function erode(h, amount)
+{
     let er = erosionRate(h);
     let newh = zero(h.mesh);
     let maxr = d3.max(er);
-    for (let i = 0; i < h.length; i++) {
+    // TODO amount proportional to distance to the edge
+    for (let i = 0; i < h.length; i++)
+    {
         newh[i] = h[i] - amount * (er[i] / maxr);
     }
     return newh;

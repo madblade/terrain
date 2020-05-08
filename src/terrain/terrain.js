@@ -32,11 +32,6 @@ function runif(lo, hi)
     // return lo + Math.random() * (hi - lo);
 }
 
-let defaultExtent = {
-    width: 1,
-    height: 1
-};
-
 function quantile(h, q)
 {
     let sortedh = [];
@@ -57,6 +52,13 @@ function setSeaLevel(h, q)
     return newh;
 }
 
+let TerrainGenerator = function()
+{
+    this.buffer = [];
+}
+
+// TODO fix leaks
+// TODO macroscopic noise
 function generateCoast(params)
 {
     let mesh = generateGoodMesh(params.npts, params.extent);
@@ -69,10 +71,17 @@ function generateCoast(params)
         h = relax(h);
     }
     h = peaky(h);
-    h = doErosion(h, runif(0, 0.1), 5);
-    h = setSeaLevel(h, runif(0.2, 0.6));
+
+    let el = runif(0, 0.1);
+    h = doErosion(h, el, 5);
+
+    let sl = runif(0.2, 0.6);
+    h = setSeaLevel(h, sl);
+
     h = fillSinks(h);
     h = cleanCoast(h, 3);
+
+    // console.log(h);
     return h;
 }
 
@@ -91,6 +100,11 @@ function doMap(svg, params) {
     placeCities(render);
     drawMap(svg, render);
 }
+
+let defaultExtent = {
+    width: 1,
+    height: 1
+};
 
 let defaultParams = {
     extent: defaultExtent,
