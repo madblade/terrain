@@ -10,6 +10,14 @@ let Mapper = function()
     this.buffer = [];
 };
 
+Mapper.prototype.resetBuffer = function(newBufferLength)
+{
+    if (this.buffer.length !== newBufferLength)
+        this.buffer = new Float64Array(newBufferLength);
+    else
+        this.buffer.fill(0);
+};
+
 function copy1D(h, mapper1D)
 {
     let z = [];
