@@ -7,7 +7,7 @@ import {
     contour, isnearedge, neighboursCopy
 } from './mesh';
 import { trislope } from './erosion';
-import {max, min, zero} from './rough';
+import { max, min } from './rough';
 import { runif } from './terrain';
 import { drawLabels } from './names';
 
@@ -178,23 +178,6 @@ function visualizeCities(svg, render)
         .raise();
 }
 
-function dropEdge(h, p)
-{
-    p = p || 4
-    let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        let v = h.mesh.vxs[i];
-        let x = 2.4 * v[0] / h.mesh.extent.width;
-        let y = 2.4 * v[1] / h.mesh.extent.height;
-        newh[i] = h[i] - Math.exp(
-            10 * (Math.pow(
-            Math.pow(x, p) + Math.pow(y, p),
-            1 / p) - 1)
-        );
-    }
-    return newh;
-}
-
 function drawMap(svg, render)
 {
     render.rivers = getRivers(render.h, 0.01);
@@ -214,6 +197,6 @@ export {
     drawPaths,
     visualizeBorders, visualizeCities, visualizeContour,
     visualizeDownhill, visualizePoints, visualizeSlopes,
-    drawMap, dropEdge,
+    drawMap,
     makeD3Path
 }

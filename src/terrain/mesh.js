@@ -69,7 +69,8 @@ function generateGoodPoints(n, extent) {
     return improvePoints(pts, 1, extent);
 }
 
-function voronoi(pts, extent) {
+function voronoi(pts, extent)
+{
     extent = extent || defaultExtent;
     let w = extent.width/2;
     let h = extent.height/2;
@@ -129,12 +130,6 @@ function makeMesh(pts, extent)
         tris: tris,
         edges: edges,
         extent: extent
-    }
-
-    mesh.map = function (f) {
-        let mapped = vxs.map(f);
-        mapped.mesh = mesh;
-        return mapped;
     }
 
     return mesh;

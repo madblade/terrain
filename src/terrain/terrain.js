@@ -83,11 +83,12 @@ function generateCoast(params)
     h = fillSinks(h);
     h = cleanCoast(h, 3);
 
-    // console.log(h);
+    console.log(h);
     return h;
 }
 
-function doMap(svg, params) {
+function doMap(svg, params)
+{
     let render = {
         params: params
     };

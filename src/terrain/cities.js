@@ -1,7 +1,7 @@
 
 import PriorityQueue from 'js-priority-queue';
 
-import { map } from './rough';
+import { applyTransform, maxArg } from './rough';
 import { downhill, getFlux } from './erosion';
 import {
     distance, isnearedge, neighbours, mergeSegments
@@ -14,7 +14,7 @@ let CityPlacer = function()
 
 function cityScore(h, cities)
 {
-    let score = map(getFlux(h), Math.sqrt);
+    let score = applyTransform(getFlux(h), Math.sqrt);
     for (let i = 0; i < h.length; i++) {
         if (h[i] <= 0 || isnearedge(h.mesh, i)) {
             score[i] = -999999;
@@ -29,21 +29,6 @@ function cityScore(h, cities)
     return score;
 }
 
-function maxArg(array)
-{
-    let max = -Infinity;
-    let maxIndex = 0;
-    for (let i = 1, l = array.length, v; i < l; ++i)
-    {
-        if ((v = array[i]) > max)
-        {
-            max = v;
-            maxIndex = i;
-        }
-    }
-    return maxIndex;
-}
-
 function placeCity(render)
 {
     render.cities = render.cities || [];
@@ -54,7 +39,6 @@ function placeCity(render)
 
 function placeCities(render) {
     let params = render.params;
-    let h = render.h;
     let n = params.ncities;
     for (let i = 0; i < n; i++) {
         placeCity(render);
@@ -162,9 +146,12 @@ function getBorders(render)
 function relaxPath(path)
 {
     let newpath = [path[0]];
-    for (let i = 1; i < path.length - 1; i++) {
-        let newpt = [0.25 * path[i-1][0] + 0.5 * path[i][0] + 0.25 * path[i+1][0],
-            0.25 * path[i-1][1] + 0.5 * path[i][1] + 0.25 * path[i+1][1]];
+    for (let i = 1; i < path.length - 1; i++)
+    {
+        let newpt = [
+            0.25 * path[i-1][0] + 0.5 * path[i][0] + 0.25 * path[i+1][0],
+            0.25 * path[i-1][1] + 0.5 * path[i][1] + 0.25 * path[i+1][1]
+        ];
         newpath.push(newpt);
     }
     newpath.push(path[path.length - 1]);

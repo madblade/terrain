@@ -2,6 +2,7 @@
 import {
     makeName, makeRandomLanguage
 } from '../language';
+import { minArg } from './rough';
 
 let NameGiver = function()
 {
@@ -20,28 +21,6 @@ function terrCenter(h, terr, city, landOnly) {
         n++;
     }
     return [x/n, y/n];
-}
-
-function minArg(array, compare)
-{
-    let minValue = Infinity;
-    let minIndex = 0;
-    for (let i = 1, l = array.length, value; i < l; ++i)
-    {
-        value = array[i];
-        if (
-            minIndex === 0
-            ? compare(value, value) === 0
-            :
-            compare(value, minValue) < 0
-        )
-        {
-            minValue = value;
-            minIndex = i;
-        }
-    }
-
-    return minIndex;
 }
 
 function drawLabels(svg, render)

@@ -108,7 +108,7 @@ let Sobol = function(dimension)
     if (dimension < 1 || dimension > COEFFICIENTS.length) throw new Error('OOB');
     let tmp = [];
     let direction = [];
-    let zero = [];
+    let zee = [];
     let x = [];
     let lines = COEFFICIENTS;
     let count = 0;
@@ -120,7 +120,7 @@ let Sobol = function(dimension)
     this.next = function() {
         if (count === 0) {
             count++;
-            return zero.slice();
+            return zee.slice();
         }
         let v = [];
         let c = 1;
@@ -141,7 +141,7 @@ let Sobol = function(dimension)
     for (i = 0; i < dimension; i++) {
         direction[i] = tmp.slice();
         x[i] = 0;
-        zero[i] = 0;
+        zee[i] = 0;
     }
 
     for (i = 1; i <= BITS; i++) direction[0][i] = 1 << (BITS - i);

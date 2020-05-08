@@ -5,12 +5,12 @@ import { neighbours } from './mesh';
 
 let randomGenerator = new Random('rough');
 
-let Mapper = function()
+let FieldGenerator = function()
 {
     this.buffer = [];
 };
 
-Mapper.prototype.resetBuffer = function(newBufferLength)
+FieldGenerator.prototype.resetBuffer = function(newBufferLength)
 {
     if (this.buffer.length !== newBufferLength)
         this.buffer = new Float64Array(newBufferLength);
@@ -73,7 +73,7 @@ function cone(mesh, slope)
     return newh;
 }
 
-function map(h, f)
+function applyTransform(h, f)
 {
     let newh = copy1D(h, f);
     return newh;
@@ -119,35 +119,15 @@ function mountains(mesh, n, r)
     return newvals;
 }
 
-function min(array)
-{
-    let min = Infinity;
-    for (let i = 0, l = array.length, v; i < l; ++i)
-    {
-        if ((v = array[i]) < min) min = v;
-    }
-    return min;
-}
-
-function max(array)
-{
-    let max = -Infinity;
-    for (let i = 0, l = array.length, v; i < l; ++i)
-    {
-        if ((v = array[i]) > max) max = v;
-    }
-    return max;
-}
-
 function normalize(h)
 {
     let lo = min(h);
     let hi = max(h);
-    return map(h, function (x) {return (x - lo) / (hi - lo)});
+    return applyTransform(h, function (x) {return (x - lo) / (hi - lo)});
 }
 
 function peaky(h) {
-    return map(normalize(h), Math.sqrt);
+    return applyTransform(normalize(h), Math.sqrt);
 }
 
 function mean(indexArray, array)
@@ -175,15 +155,74 @@ function relax(h)
     return newh;
 }
 
+// Math util functions
+
+function min(array)
+{
+    let min = Infinity;
+    for (let i = 0, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) < min) min = v;
+    }
+    return min;
+}
+
+function max(array)
+{
+    let max = -Infinity;
+    for (let i = 0, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) > max) max = v;
+    }
+    return max;
+}
+
+function maxArg(array)
+{
+    let max = -Infinity;
+    let maxIndex = 0;
+    for (let i = 1, l = array.length, v; i < l; ++i)
+    {
+        if ((v = array[i]) > max)
+        {
+            max = v;
+            maxIndex = i;
+        }
+    }
+    return maxIndex;
+}
+
+function minArg(array, compare)
+{
+    let minValue = Infinity;
+    let minIndex = 0;
+    for (let i = 1, l = array.length, value; i < l; ++i)
+    {
+        value = array[i];
+        if (
+            minIndex === 0
+                ? compare(value, value) === 0
+                :
+                compare(value, minValue) < 0
+        )
+        {
+            minValue = value;
+            minIndex = i;
+        }
+    }
+
+    return minIndex;
+}
+
 export {
     zero,
     slope,
     cone,
     add,
-    min, max,
+    min, max, maxArg, minArg,
     mountains,
     peaky,
     normalize,
     relax,
-    map
+    applyTransform
 }

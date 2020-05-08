@@ -1,5 +1,5 @@
 
-import {max, zero} from './rough';
+import { max, zero } from './rough';
 import {
     neighbours, isnearedge, isedge
 } from './mesh';
