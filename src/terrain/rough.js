@@ -79,15 +79,17 @@ function applyTransform(h, f)
     return newh;
 }
 
-function add()
+function sumFields(fields)
 {
-    let n = arguments[0].length;
-    let newvals = zero(arguments[0].mesh);
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < arguments.length; j++) {
-            newvals[i] += arguments[j][i];
+    let n = fields[0].length;
+    let newvals = zero(fields[0].mesh);
+    for (let i = 0; i < n; i++)
+    {
+        for (let j = 0; j < fields.length; j++) {
+            newvals[i] += fields[j][i];
         }
     }
+
     return newvals;
 }
 
@@ -218,7 +220,7 @@ export {
     zero,
     slope,
     cone,
-    add,
+    sumFields,
     min, max, maxArg, minArg,
     mountains,
     peaky,

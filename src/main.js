@@ -38,11 +38,10 @@ import {
     zero,
     slope,
     cone,
-    add,
     mountains,
     peaky,
     normalize,
-    relax, max
+    relax, max, sumFields
 } from './terrain/rough';
 
 import {
@@ -126,28 +125,40 @@ primDiv.append("button")
 primDiv.append("button")
     .text("Add random slope")
     .on("click", function () {
-        primH = add(primH, slope(primH.mesh, randomVector(4)));
+        primH = sumFields([
+            primH,
+            slope(primH.mesh, randomVector(4))
+        ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add cone")
     .on("click", function () {
-        primH = add(primH, cone(primH.mesh, -0.5));
+        primH = sumFields([
+            primH,
+            cone(primH.mesh, -0.5)
+        ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add inverted cone")
     .on("click", function () {
-        primH = add(primH, cone(primH.mesh, 0.5));
+        primH = sumFields([
+            primH,
+            cone(primH.mesh, 0.5)
+        ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add five blobs")
     .on("click", function () {
-        primH = add(primH, mountains(primH.mesh, 5));
+        primH = sumFields([
+            primH,
+            mountains(primH.mesh, 5)
+        ]);
         primDraw();
     });
 
@@ -184,9 +195,11 @@ let erodeSVG = addSVG(erodeDiv);
 
 function generateUneroded() {
     let mesh = generateGoodMesh(mainSize);
-    let h = add(slope(mesh, randomVector(4)),
+    let h = sumFields([
+        slope(mesh, randomVector(4)),
         cone(mesh, runif(-1, 1)),
-        mountains(mesh, 50));
+        mountains(mesh, 50)]
+    );
     h = peaky(h);
     h = fillSinks(h);
     h = setSeaLevel(h, 0.5);

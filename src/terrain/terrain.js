@@ -7,10 +7,9 @@ import {
     zero,
     slope,
     cone,
-    add,
     mountains,
     peaky,
-    relax,
+    relax, sumFields,
 } from './rough';
 import {
     doErosion, fillSinks, cleanCoast,
@@ -64,11 +63,11 @@ let TerrainGenerator = function()
 function generateCoast(params)
 {
     let mesh = generateGoodMesh(params.npts, params.extent);
-    let h = add(
+    let h = sumFields([
         slope(mesh, randomVector(4)),
         cone(mesh, runif(-1, -1)),
         mountains(mesh, 50)
-    );
+    ]);
     for (let i = 0; i < 10; i++) {
         h = relax(h);
     }
