@@ -4,11 +4,9 @@ import * as d3 from 'd3';
 import {
     defaultExtent,
     defaultParams,
-    doMap,
     generateCoast,
     setSeaLevel,
-    runif,
-    randomVector,
+    randomVector, generateUneroded,
 } from './terrain/terrain';
 
 import {
@@ -25,6 +23,7 @@ import {
     getBorders,
     getRivers,
     getTerritories,
+    placeCities,
     placeCity,
 } from './terrain/cities';
 
@@ -192,19 +191,6 @@ primDiv.append("button")
 
 let erodeDiv = d3.select("div#erode");
 let erodeSVG = addSVG(erodeDiv);
-
-function generateUneroded() {
-    let mesh = generateGoodMesh(mainSize);
-    let h = sumFields([
-        slope(mesh, randomVector(4)),
-        cone(mesh, runif(-1, 1)),
-        mountains(mesh, 50)]
-    );
-    h = peaky(h);
-    h = fillSinks(h);
-    h = setSeaLevel(h, 0.5);
-    return h;
-}
 
 let erodeH = primH;
 let erodeViewErosion = false;
@@ -418,3 +404,19 @@ finalDiv.append("button")
         doMap(finalSVG, defaultParams);
     });
 
+function doMap(svg, params)
+{
+    let render = {
+        params: params
+    };
+    let width = svg.attr('width');
+    svg.attr('height', width * params.extent.height / params.extent.width);
+    svg.attr('viewBox', -1000 * params.extent.width/2 + ' ' +
+        -1000 * params.extent.height/2 + ' ' +
+        1000 * params.extent.width + ' ' +
+        1000 * params.extent.height);
+    svg.selectAll().remove();
+    render.h = params.generator(params);
+    placeCities(render);
+    drawMap(svg, render);
+}

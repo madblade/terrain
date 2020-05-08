@@ -15,8 +15,6 @@ import {
     doErosion, fillSinks, cleanCoast,
 } from './erosion';
 import { generateGoodMesh } from './mesh';
-import { placeCities } from './cities';
-import { drawMap } from './render';
 
 let mainRandomGenerator = new Random('terrain');
 function randomVector(scale)
@@ -86,21 +84,18 @@ function generateCoast(params)
     return h;
 }
 
-function doMap(svg, params)
+function generateUneroded()
 {
-    let render = {
-        params: params
-    };
-    let width = svg.attr('width');
-    svg.attr('height', width * params.extent.height / params.extent.width);
-    svg.attr('viewBox', -1000 * params.extent.width/2 + ' ' +
-        -1000 * params.extent.height/2 + ' ' +
-        1000 * params.extent.width + ' ' +
-        1000 * params.extent.height);
-    svg.selectAll().remove();
-    render.h = params.generator(params);
-    placeCities(render);
-    drawMap(svg, render);
+    let mesh = generateGoodMesh(mainSize);
+    let h = sumFields([
+        slope(mesh, randomVector(4)),
+        cone(mesh, runif(-1, 1)),
+        mountains(mesh, 50)]
+    );
+    h = peaky(h);
+    h = fillSinks(h);
+    h = setSeaLevel(h, 0.5);
+    return h;
 }
 
 let defaultExtent = {
@@ -125,7 +120,6 @@ export {
     setSeaLevel,
     runif,
     randomVector,
-    doMap,
-    generateCoast,
+    generateCoast, generateUneroded,
     defaultExtent, defaultParams
 };

@@ -59,11 +59,11 @@ function visualizeVoronoi(svg, field, lo, hi)
         });
 }
 
-function visualizeDownhill(h)
-{
-    let links = getRivers(h, 0.01);
-    drawPaths('river', links);
-}
+// function visualizeDownhill(h)
+// {
+//     let links = getRivers(h, 0.01);
+//     drawPaths('river', links);
+// }
 
 function drawPaths(svg, cls, paths)
 {
@@ -136,18 +136,18 @@ function visualizeSlopes(svg, render)
         })
 }
 
-function visualizeContour(h, level)
-{
-    level = level || 0;
-    let links = contour(h, level);
-    drawPaths('coast', links);
-}
+// function visualizeContour(h, level)
+// {
+//     level = level || 0;
+//     let links = contour(h, level);
+//     drawPaths('coast', links);
+// }
 
-function visualizeBorders(h, cities, n)
-{
-    let links = getBorders(h, getTerritories(h, cities, n));
-    drawPaths('border', links);
-}
+// function visualizeBorders(h, cities, n)
+// {
+//     let links = getBorders(h, getTerritories(h, cities, n));
+//     drawPaths('border', links);
+// }
 
 function visualizeCities(svg, render)
 {
@@ -195,8 +195,7 @@ function drawMap(svg, render)
 export {
     visualizeVoronoi,
     drawPaths,
-    visualizeBorders, visualizeCities, visualizeContour,
-    visualizeDownhill, visualizePoints, visualizeSlopes,
+    visualizeCities, visualizePoints, visualizeSlopes,
     drawMap,
     makeD3Path
 }

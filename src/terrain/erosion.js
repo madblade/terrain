@@ -7,6 +7,7 @@ import {
 let Eroder = function()
 {
     this.buffer = [];
+    this.fluxBuffer = [];
     this.indexBuffer = [];
 }
 

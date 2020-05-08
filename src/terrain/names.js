@@ -9,7 +9,8 @@ let NameGiver = function()
     this.buffer = [];
 };
 
-function terrCenter(h, terr, city, landOnly) {
+function terrCenter(h, terr, city, landOnly)
+{
     let x = 0;
     let y = 0;
     let n = 0;

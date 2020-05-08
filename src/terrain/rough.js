@@ -5,18 +5,60 @@ import { neighbours } from './mesh';
 
 let randomGenerator = new Random('rough');
 
-let FieldGenerator = function()
+let FieldModifier = function()
 {
     this.buffer = [];
 };
 
-FieldGenerator.prototype.resetBuffer = function(newBufferLength)
+FieldModifier.prototype.resetBuffer = function(newBufferLength)
 {
     if (this.buffer.length !== newBufferLength)
         this.buffer = new Float64Array(newBufferLength);
     else
         this.buffer.fill(0);
 };
+
+FieldModifier.prototype.swapBuffers = function(otherObject)
+{
+    let tempBuffer = this.buffer;
+    this.buffer = otherObject.buffer;
+    otherObject.buffer = tempBuffer;
+}
+
+FieldModifier.prototype.apply1D = function(mesh, mapper1D)
+{
+    let buffer = mesh.buffer;
+    for (let i = 0, l = buffer.length; i < l; i++)
+    {
+        const b = buffer[i];
+        buffer[i] = mapper1D(b);
+    }
+}
+
+FieldModifier.prototype.apply2D = function(mesh, mapper2D)
+{
+    let vxs = mesh.vxs;
+    let buffer = mesh.buffer;
+    for (let i = 0, l = vxs.length, v; i < l; i++) {
+        v = vxs[i];
+        buffer[i] = mapper2D(v);
+    }
+}
+
+FieldModifier.prototype.addSlope = function(mesh, direction)
+{
+    let dx = direction[0];
+    let dy = direction[1];
+    this.apply2D(mesh, v => v[0] * dx + v[1] * dy);
+}
+
+FieldModifier.prototype.addCone = function (mesh, slope)
+{
+    this.apply2D(mesh,
+    v => Math.sqrt(
+        Math.pow(v[0], 2) + Math.pow(v[1], 2)
+    ) * slope);
+}
 
 function copy1D(h, mapper1D)
 {
@@ -217,6 +259,7 @@ function minArg(array, compare)
 }
 
 export {
+    applyTransform,
     zero,
     slope,
     cone,
@@ -226,5 +269,4 @@ export {
     peaky,
     normalize,
     relax,
-    applyTransform
 }
