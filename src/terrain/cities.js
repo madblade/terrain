@@ -1,9 +1,10 @@
 
 import PriorityQueue from 'js-priority-queue';
 
-import { FieldModifier, maxArg } from './rough';
-import { Mesher }                from './mesh';
-import { Eroder }                 from './erosion';
+import { FieldModifier } from './modifier';
+import { Mesher }        from './mesh';
+import { Eroder }        from './erosion';
+import { maxArg }        from './math';
 
 let fieldModifier = new FieldModifier();
 let mesher = new Mesher();
@@ -54,7 +55,7 @@ CityPlacer.prototype.cityScore = function(mesh, cities)
         }
     }
 
-    return score; // this.buffer
+    return score;
 }
 
 CityPlacer.prototype.placeCity = function(country)

@@ -25,12 +25,10 @@ import {
     Eroder
 } from './terrain/erosion';
 
-import {
-    max,
-    FieldModifier
-} from './terrain/rough';
+import { FieldModifier } from './terrain/modifier';
 
 import { Mesher} from "./terrain/mesh";
+import { max }   from './terrain/math';
 
 let d3select = d3.select;
 
@@ -38,7 +36,6 @@ let mesher = new Mesher();
 let fieldModifier = new FieldModifier();
 let eroder = new Eroder();
 let cityPlacer = new CityPlacer();
-
 
 function addSVG(div) {
     return div.insert("svg", ":first-child")
@@ -62,7 +59,7 @@ function meshDraw() {
 
 meshDiv.append("button")
     .text("Generate random points")
-    .on("click", function () {
+    .on("click", () => {
         meshDual = false;
         meshVxs = null;
         meshPts = mesher.generatePoints(256);
@@ -71,7 +68,7 @@ meshDiv.append("button")
 
 meshDiv.append("button")
     .text("Improve points")
-    .on("click", function () {
+    .on("click", () => {
         meshPts = mesher.improvePoints(meshPts);
         meshVxs = null;
         meshDraw();
@@ -79,7 +76,7 @@ meshDiv.append("button")
 
 let vorBut = meshDiv.append("button")
     .text("Show Voronoi corners")
-    .on("click", function () {
+    .on("click", () => {
         meshDual = !meshDual;
         if (meshDual) {
             vorBut.text("Show original points");
@@ -107,89 +104,68 @@ primDraw();
 
 primDiv.append("button")
     .text("Reset to flat")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.resetField(primH);
-        // primH = zero(primH.mesh);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add random slope")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.resetField(primH);
         fieldModifier.addSlope(primH, randomVector(4));
-        // primH = sumFields([
-        //     primH,
-        //     slope(primH.mesh, randomVector(4))
-        // ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add cone")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.resetField(primH);
         fieldModifier.addCone(primH, -0.5);
-        // primH = sumFields([
-        //     primH,
-        //     cone(primH.mesh, -0.5)
-        // ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add inverted cone")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.resetField(primH);
         fieldModifier.addCone(primH, 0.5);
-        // primH = sumFields([
-        //     primH,
-        //     cone(primH.mesh, 0.5)
-        // ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Add five blobs")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.resetField(primH);
         fieldModifier.addMountains(primH, 5);
-        // primH = sumFields([
-        //     primH,
-        //     mountains(primH.mesh, 5)
-        // ]);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Normalize heightmap")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.normalize(primH);
-        // primH = normalize(primH);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Round hills")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.peaky(primH);
-        // primH = peaky(primH);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Relax")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.relax(primH);
-        // primH = relax(primH);
         primDraw();
     });
 
 primDiv.append("button")
     .text("Set sea level to median")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.setSeaLevel(primH, 0.5);
-        // primH = setSeaLevel(primH, 0.5);
         primDraw();
     });
 
@@ -212,28 +188,28 @@ function erodeDraw()
 
 erodeDiv.append("button")
     .text("Generate random heightmap")
-    .on("click", function () {
+    .on("click", () => {
         erodeH = generateUneroded(mainSize);
         erodeDraw();
     });
 
 erodeDiv.append("button")
     .text("Copy heightmap from above")
-    .on("click", function () {
+    .on("click", () => {
         erodeH = primH;
         erodeDraw();
     });
 
 erodeDiv.append("button")
     .text("Erode")
-    .on("click", function () {
+    .on("click", () => {
         eroder.doErosion(erodeH, 0.1);
         erodeDraw();
     });
 
 erodeDiv.append("button")
     .text("Set sea level to median")
-    .on("click", function () {
+    .on("click", () => {
         fieldModifier.setSeaLevel(erodeH, 0.5);
         erodeDraw();
     });
@@ -241,7 +217,7 @@ erodeDiv.append("button")
 
 erodeDiv.append("button")
     .text("Clean coastlines")
-    .on("click", function () {
+    .on("click", () => {
         eroder.cleanCoast(erodeH, 1);
         eroder.fillSinks(erodeH);
         erodeDraw();
@@ -249,13 +225,12 @@ erodeDiv.append("button")
 
 let erodeBut = erodeDiv.append("button")
     .text("Show erosion rate")
-    .on("click", function () {
+    .on("click", () => {
         erodeViewErosion = !erodeViewErosion;
-        if (erodeViewErosion) {
+        if (erodeViewErosion)
             erodeBut.text("Show heightmap");
-        } else {
+        else
             erodeBut.text("Show erosion rate");
-        }
         erodeDraw();
     });
 
@@ -268,26 +243,27 @@ let physViewRivers = false;
 let physViewSlope = false;
 let physViewHeight = true;
 
-function physDraw() {
-    if (physViewHeight) {
+function physDraw()
+{
+    if (physViewHeight)
         visualizeVoronoi(physSVG, physH, physH.buffer, 0);
-    } else {
+    else
         physSVG.selectAll("path.field").remove();
-    }
-    if (physViewCoast) {
+
+    if (physViewCoast)
         drawPaths(physSVG, "coast", mesher.contour(physH, 0));
-    } else {
+    else
         drawPaths(physSVG, "coast", []);
-    }
+
     if (physViewRivers) {
         console.log('display rivers');
         drawPaths(physSVG, "river", cityPlacer.getRivers(physH, 0.01));
-    } else {
+    } else
         drawPaths(physSVG, "river", []);
-    }
-    if (physViewSlope) {
+
+    if (physViewSlope)
         visualizeSlopes(physSVG, physH, physH.buffer);
-    } else {
+    else {
         let zero = [];
         for (let i = 0; i < physH.buffer.length; ++i) zero[i] = 0;
         visualizeSlopes(physSVG, physH, zero);
@@ -295,21 +271,21 @@ function physDraw() {
 }
 physDiv.append("button")
     .text("Generate random heightmap")
-    .on("click", function () {
+    .on("click", () => {
         physH = generateCoast({ npts: mainSize, extent: defaultExtent });
         physDraw();
     });
 
 physDiv.append("button")
     .text("Copy heightmap from above")
-    .on("click", function () {
+    .on("click", () => {
         physH = erodeH;
         physDraw();
     });
 
 let physCoastBut = physDiv.append("button")
     .text("Show coastline")
-    .on("click", function () {
+    .on("click", () => {
         physViewCoast = !physViewCoast;
         physCoastBut.text(physViewCoast ? "Hide coastline" : "Show coastline");
         physDraw();
@@ -317,7 +293,7 @@ let physCoastBut = physDiv.append("button")
 
 let physRiverBut = physDiv.append("button")
     .text("Show rivers")
-    .on("click", function () {
+    .on("click", () => {
         physViewRivers = !physViewRivers;
         physRiverBut.text(physViewRivers ? "Hide rivers" : "Show rivers");
         physDraw();
@@ -326,7 +302,7 @@ let physRiverBut = physDiv.append("button")
 
 let physSlopeBut = physDiv.append("button")
     .text("Show slope shading")
-    .on("click", function () {
+    .on("click", () => {
         physViewSlope = !physViewSlope;
         physSlopeBut.text(physViewSlope ? "Hide slope shading" : "Show slope shading");
         physDraw();
@@ -335,7 +311,7 @@ let physSlopeBut = physDiv.append("button")
 
 let physHeightBut = physDiv.append("button")
     .text("Hide heightmap")
-    .on("click", function () {
+    .on("click", () => {
         physViewHeight = !physViewHeight;
         physHeightBut.text(physViewHeight ? "Hide heightmap" : "Show heightmap");
         physDraw();
@@ -355,6 +331,7 @@ function newCountry(h)
         cities: []
     };
 }
+
 let country = newCountry(physH);
 function cityDraw()
 {
@@ -374,28 +351,28 @@ function cityDraw()
 
 cityDiv.append("button")
     .text("Generate random heightmap")
-    .on("click", function () {
+    .on("click", () => {
         country = newCountry();
         cityDraw();
     });
 
 cityDiv.append("button")
     .text("Copy heightmap from above")
-    .on("click", function () {
+    .on("click", () => {
         country = newCountry(physH);
         cityDraw();
     });
 
 cityDiv.append("button")
     .text("Add new city")
-    .on("click", function () {
+    .on("click", () => {
         cityPlacer.placeCity(country);
         cityDraw();
     });
 
 let cityViewBut = cityDiv.append("button")
     .text("Show territories")
-    .on("click", function () {
+    .on("click", () => {
         cityViewScore = !cityViewScore;
         cityViewBut.text(cityViewScore ? "Show territories" : "Show city location scores");
         cityDraw();
@@ -405,13 +382,13 @@ let finalDiv = d3select("div#final");
 let finalSVG = addSVG(finalDiv);
 finalDiv.append("button")
     .text("Copy map from above")
-    .on("click", function () {
+    .on("click", () => {
         drawMap(finalSVG, country);
     });
 
 finalDiv.append("button")
     .text("Generate high resolution map")
-    .on("click", function () {
+    .on("click", () => {
         doMap(finalSVG, defaultParams);
     });
 

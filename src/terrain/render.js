@@ -5,35 +5,36 @@ import { Random }     from './random';
 import {
     Mesher
 }                     from './mesh';
-import { max, min }   from './rough';
 import { runif }      from './terrain';
 import { drawLabels } from './names';
 import { Eroder }     from './erosion';
 import { CityPlacer } from './cities';
+import { max, min }   from './math';
 
 let mesher = new Mesher();
 let eroder = new Eroder();
 let cityPlacer = new CityPlacer();
 
+let d3selectAll = d3.selectAll;
+let d3interpolateViridis = d3.interpolateViridis;
+let d3path = d3.path;
+
 function visualizePoints(svg, pts)
 {
-    let circle = svg.selectAll('circle').data(pts);
+    let circle = svg.selectAll('circle.vtest').data(pts);
     circle.enter()
-        .append('circle');
+        .append('circle')
+        .classed('vtest', true);
     circle.exit().remove();
-    d3.selectAll('circle')
-        .attr('cx', function (d) {
-            return 1000 * d[0]
-        })
-        .attr('cy', function (d) {
-            return 1000 * d[1]
-        })
+    d3selectAll('circle.vtest')
+        .attr('cx', d => 1000 * d[0])
+        .attr('cy', d => 1000 * d[1])
         .attr('r', 100 / Math.sqrt(pts.length));
 }
 
 function makeD3Path(path)
 {
-    let p = d3.path();
+    let p = d3path();
     p.moveTo(1000 * path[0][0], 1000 * path[0][1]);
     for (let i = 1; i < path.length; i++) {
         p.lineTo(1000 * path[i][0], 1000 * path[i][1]);
@@ -46,9 +47,9 @@ function visualizeVoronoi(svg, mesh, field, lo, hi)
     let tris = mesh.tris;
     if (hi === undefined) hi = max(field) + 1e-9;
     if (lo === undefined) lo = min(field) - 1e-9;
-    let mappedvals = field.map(function (x) {
-        return x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)
-    });
+    let mappedvals = field.map(x =>
+        x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)
+    );
     let svgTris = svg.selectAll('path.field').data(tris)
     svgTris.enter()
         .append('path')
@@ -59,16 +60,10 @@ function visualizeVoronoi(svg, mesh, field, lo, hi)
 
     svg.selectAll('path.field')
         .attr('d', makeD3Path)
-        .style('fill', function (d, i) {
-            return d3.interpolateViridis(mappedvals[i]);
-        });
+        .style('fill', (d, i) =>
+            d3interpolateViridis(mappedvals[i])
+        );
 }
-
-// function visualizeDownhill(h)
-// {
-//     let links = getRivers(h, 0.01);
-//     drawPaths('river', links);
-// }
 
 function drawPaths(svg, cls, paths)
 {
@@ -141,19 +136,6 @@ function visualizeSlopes(svg, mesh, field)
         .attr('y2', d => 1000 * d[1][1])
 }
 
-// function visualizeContour(h, level)
-// {
-//     level = level || 0;
-//     let links = contour(h, level);
-//     drawPaths('coast', links);
-// }
-
-// function visualizeBorders(h, cities, n)
-// {
-//     let links = getBorders(h, getTerritories(h, cities, n));
-//     drawPaths('border', links);
-// }
-
 function visualizeCities(svg, country)
 {
     let cities = country.cities;
@@ -167,15 +149,9 @@ function visualizeCities(svg, country)
     circs.exit()
         .remove();
     svg.selectAll('circle.city')
-        .attr('cx', function (d) {
-            return 1000 * mesh.vxs[d][0]
-        })
-        .attr('cy', function (d) {
-            return 1000 * mesh.vxs[d][1]
-        })
-        .attr('r', function (d, i) {
-            return i >= n ? 4 : 10
-        })
+        .attr('cx', d => 1000 * mesh.vxs[d][0])
+        .attr('cy', d => 1000 * mesh.vxs[d][1])
+        .attr('r', (d, i) => i >= n ? 4 : 10)
         .style('fill', 'white')
         .style('stroke-width', 5)
         .style('stroke-linecap', 'round')

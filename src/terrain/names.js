@@ -1,8 +1,8 @@
 
 import {
     makeName, makeRandomLanguage
-} from '../language';
-import { minArg } from './rough';
+}                 from '../language';
+import { minArg } from './math';
 
 let NameGiver = function()
 {
@@ -31,7 +31,6 @@ function drawLabels(svg, country)
     let params = country.params;
     let mesh = country.mesh;
     let h = mesh.buffer;
-    // let h = country.h;
     let terr = country.terr;
     let cities = country.cities;
     let nterrs = country.params.nterrs;
@@ -81,8 +80,8 @@ function drawLabels(svg, country)
         let y = mesh.vxs[cities[i]][1];
         let text = makeName(lang, 'city');
         let size = i < nterrs ? params.fontsizes.city : params.fontsizes.town;
-        let sx = 0.65 * size/1000 * text.length;
-        let sy = size/1000;
+        let sx = 0.65 * size / 1000 * text.length;
+        let sy = size / 1000;
         let posslabels = [
             {
                 x: x + 0.8 * sy,

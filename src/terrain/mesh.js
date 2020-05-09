@@ -1,12 +1,13 @@
 
 import * as d3 from 'd3';
-import { Delaunay } from 'd3-delaunay';
+// import { Delaunay } from 'd3-delaunay';
 
 import { Random } from './random';
-
 import { defaultExtent } from './terrain';
 
 let randomGenerator = new Random('mesher');
+
+let d3voronoi = d3.voronoi;
 
 let Mesher = function()
 {
@@ -76,7 +77,7 @@ Mesher.prototype.voronoi = function(pts, extent)
     extent = extent || defaultExtent;
     let w = extent.width/2;
     let h = extent.height/2;
-    let layout = d3.voronoi().extent([[-w, -h], [w, h]])(pts);
+    let layout = d3voronoi().extent([[-w, -h], [w, h]])(pts);
 
     console.log(layout);
     // const delaunay = Delaunay.from(pts);
@@ -252,7 +253,6 @@ Mesher.prototype.neighboursCopy = function(mesh, i)
 
 Mesher.prototype.neighbours = function(mesh, i)
 {
-    // return neighboursCopy(mesh, i);
     return mesh.adj[i];
 }
 

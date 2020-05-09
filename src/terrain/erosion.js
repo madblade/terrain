@@ -1,6 +1,6 @@
 
-import { max } from './rough';
-import { Mesher }    from './mesh';
+import { Mesher } from './mesh';
+import { max }    from './math';
 
 let mesher = new Mesher();
 
@@ -84,30 +84,6 @@ Eroder.prototype.downfrom = function(mesh, i)
     return best;
 };
 
-// function downhill(h)
-// {
-//     if (h.downhill) return h.downhill;
-//     function downfrom(i) {
-//         if (mesher.isedge(h.mesh, i)) return -2;
-//         let best = -1;
-//         let besth = h[i];
-//         let nbs = mesher.neighbours(h.mesh, i);
-//         for (let j = 0; j < nbs.length; j++) {
-//             if (h[nbs[j]] < besth) {
-//                 besth = h[nbs[j]];
-//                 best = nbs[j];
-//             }
-//         }
-//         return best;
-//     }
-//     let downs = [];
-//     for (let i = 0; i < h.length; i++) {
-//         downs[i] = downfrom(i);
-//     }
-//     h.downhill = downs;
-//     return downs;
-// }
-
 Eroder.prototype.fillSinks = function(mesh, epsilon)
 {
     let h = mesh.buffer;
@@ -116,7 +92,6 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
 
     this.resetBuffer(h.length);
     let newh = this.buffer;
-    // let newh = zero(h.mesh);
     for (let i = 0; i < h.length; i++)
     {
         if (mesher.isnearedge(mesh, i)) {
@@ -277,7 +252,8 @@ Eroder.prototype.erode = function(mesh, amount)
     let er = this.erosionRate(mesh); // this.buffer
     // let newh = zero(h.mesh);
     let maxr = max(er);
-    let c = amount / maxr; // TODO amount proportional to distance to the edge
+    let c = amount / maxr;
+    // TODO amount proportional to distance to the edge
     for (let i = 0; i < h.length; i++)
     {
         h[i] = h[i] - c * er[i];

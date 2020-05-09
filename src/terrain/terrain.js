@@ -1,11 +1,9 @@
 
-import * as d3 from 'd3';
-
 import { Random } from './random';
 
 import {
     FieldModifier,
-} from './rough';
+} from './modifier';
 import {
     Eroder,
 } from './erosion';

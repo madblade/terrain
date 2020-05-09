@@ -500,10 +500,7 @@ let ressets = [
 ];
 
 export {
-    makeBasicLanguage,
     makeRandomLanguage,
     makeName,
-    makeOrthoLanguage,
-    makeSyllable,
-    makeWord
+    // makeWord
 }
