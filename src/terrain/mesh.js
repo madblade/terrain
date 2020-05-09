@@ -13,7 +13,7 @@ let Mesher = function()
     this.buffer = [];
 };
 
-function generatePoints(n, extent)
+Mesher.prototype.generatePoints = function (n, extent)
 {
     extent = extent || defaultExtent;
     let pts = [];
@@ -39,7 +39,7 @@ function generatePoints(n, extent)
     return pts;
 }
 
-function centroid(pts) {
+Mesher.prototype.centroid = function(pts) {
     let x = 0;
     let y = 0;
     for (let i = 0; i < pts.length; i++) {
@@ -49,27 +49,29 @@ function centroid(pts) {
     return [x/pts.length, y/pts.length];
 }
 
-function improvePoints(pts, n, extent) {
+Mesher.prototype.improvePoints = function(pts, n, extent)
+{
     n = n || 1;
     extent = extent || defaultExtent;
     for (let i = 0; i < n; i++) {
-        pts = voronoi(pts, extent)
+        pts = this.voronoi(pts, extent)
             .polygons(pts)
-            .map(centroid);
+            .map(this.centroid);
     }
     return pts;
 }
 
-function generateGoodPoints(n, extent) {
+Mesher.prototype.generateGoodPoints = function(n, extent)
+{
     extent = extent || defaultExtent;
-    let pts = generatePoints(n, extent);
+    let pts = this.generatePoints(n, extent);
     pts = pts.sort(function (a, b) {
         return a[0] - b[0];
     });
-    return improvePoints(pts, 1, extent);
+    return this.improvePoints(pts, 1, extent);
 }
 
-function voronoi(pts, extent)
+Mesher.prototype.voronoi = function(pts, extent)
 {
     extent = extent || defaultExtent;
     let w = extent.width/2;
@@ -84,10 +86,10 @@ function voronoi(pts, extent)
     return layout;
 }
 
-function makeMesh(pts, extent)
+Mesher.prototype.makeMesh = function(pts, extent)
 {
     extent = extent || defaultExtent;
-    let vor = voronoi(pts, extent);
+    let vor = this.voronoi(pts, extent);
     let vxs = [];
     let vxids = {};
     let adj = [];
@@ -132,16 +134,23 @@ function makeMesh(pts, extent)
         extent: extent
     }
 
+    let vl = vxs.length;
+    if (vl !== adj.length || vl !== tris.length)
+        console.error('Incompatible mesh.');
+
+    mesh.buffer = new Array(vl);
+
     return mesh;
 }
 
-function generateGoodMesh(n, extent) {
+Mesher.prototype.generateGoodMesh = function(n, extent)
+{
     extent = extent || defaultExtent;
-    let pts = generateGoodPoints(n, extent);
-    return makeMesh(pts, extent);
+    let pts = this.generateGoodPoints(n, extent);
+    return this.makeMesh(pts, extent);
 }
 
-function mergeSegments(segs)
+Mesher.prototype.mergeSegments = function(segs)
 {
     let adj = {};
     for (let i = 0; i < segs.length; i++) {
@@ -195,28 +204,35 @@ function mergeSegments(segs)
     return paths;
 }
 
-function contour(h, level)
+Mesher.prototype.contour = function(mesh, level)
 {
+    let meshEdges = mesh.edges;
+    let field = mesh.buffer;
     level = level || 0;
     let edges = [];
-    for (let i = 0; i < h.mesh.edges.length; i++) {
-        let e = h.mesh.edges[i];
+
+    for (let i = 0; i < meshEdges.length; i++)
+    {
+        let e = meshEdges[i];
         if (e[3] === undefined) continue;
-        if (isnearedge(h.mesh, e[0]) || isnearedge(h.mesh, e[1])) continue;
-        if ((h[e[0]] > level && h[e[1]] <= level) ||
-            (h[e[1]] > level && h[e[0]] <= level)) {
+        if (this.isnearedge(mesh, e[0]) || this.isnearedge(mesh, e[1])) continue;
+        if ((field[e[0]] > level && field[e[1]] <= level) ||
+            (field[e[1]] > level && field[e[0]] <= level))
+        {
             edges.push([e[2], e[3]]);
         }
     }
 
-    return mergeSegments(edges);
+    return this.mergeSegments(edges);
 }
 
-function isedge(mesh, i) {
+Mesher.prototype.isedge = function(mesh, i)
+{
     return (mesh.adj[i].length < 3);
 }
 
-function isnearedge(mesh, i) {
+Mesher.prototype.isnearedge = function(mesh, i)
+{
     let x = mesh.vxs[i][0];
     let y = mesh.vxs[i][1];
     let w = mesh.extent.width;
@@ -224,7 +240,8 @@ function isnearedge(mesh, i) {
     return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
 }
 
-function neighboursCopy(mesh, i) {
+Mesher.prototype.neighboursCopy = function(mesh, i)
+{
     let onbs = mesh.adj[i];
     let nbs = [];
     for (let i = 0; i < onbs.length; i++) {
@@ -233,12 +250,13 @@ function neighboursCopy(mesh, i) {
     return nbs;
 }
 
-function neighbours(mesh, i) {
+Mesher.prototype.neighbours = function(mesh, i)
+{
     // return neighboursCopy(mesh, i);
     return mesh.adj[i];
 }
 
-function distance(mesh, i, j)
+Mesher.prototype.distance = function(mesh, i, j)
 {
     let p = mesh.vxs[i];
     let q = mesh.vxs[j];
@@ -248,12 +266,5 @@ function distance(mesh, i, j)
 }
 
 export {
-    generateGoodMesh,
-    centroid,
-    voronoi,
-    generateGoodPoints, generatePoints,
-    makeMesh,
-    improvePoints,
-    isedge, isnearedge, contour, mergeSegments, distance, neighbours,
-    neighboursCopy
+    Mesher
 }

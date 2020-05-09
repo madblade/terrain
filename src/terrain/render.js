@@ -1,15 +1,19 @@
 
 import * as d3 from 'd3';
 
-import { getBorders, getRivers, getTerritories } from './cities';
-import { Random } from './random';
+import { Random }     from './random';
 import {
-    contour, isnearedge, neighboursCopy
-} from './mesh';
-import { trislope } from './erosion';
-import { max, min } from './rough';
-import { runif } from './terrain';
+    Mesher
+}                     from './mesh';
+import { max, min }   from './rough';
+import { runif }      from './terrain';
 import { drawLabels } from './names';
+import { Eroder }     from './erosion';
+import { CityPlacer } from './cities';
+
+let mesher = new Mesher();
+let eroder = new Eroder();
+let cityPlacer = new CityPlacer();
 
 function visualizePoints(svg, pts)
 {
@@ -37,19 +41,20 @@ function makeD3Path(path)
     return p.toString();
 }
 
-function visualizeVoronoi(svg, field, lo, hi)
+function visualizeVoronoi(svg, mesh, field, lo, hi)
 {
+    let tris = mesh.tris;
     if (hi === undefined) hi = max(field) + 1e-9;
     if (lo === undefined) lo = min(field) - 1e-9;
     let mappedvals = field.map(function (x) {
         return x > hi ? 1 : x < lo ? 0 : (x - lo) / (hi - lo)
     });
-    let tris = svg.selectAll('path.field').data(field.mesh.tris)
-    tris.enter()
+    let svgTris = svg.selectAll('path.field').data(tris)
+    svgTris.enter()
         .append('path')
         .classed('field', true);
 
-    tris.exit()
+    svgTris.exit()
         .remove();
 
     svg.selectAll('path.field')
@@ -77,20 +82,21 @@ function drawPaths(svg, cls, paths)
         .attr('d', makeD3Path);
 }
 
-function visualizeSlopes(svg, render)
+function visualizeSlopes(svg, mesh, field)
 {
     let randomGenerator = new Random('vslopes');
-    let h = render.h;
+    let h = field;
     let strokes = [];
     let r = 0.25 / Math.sqrt(h.length);
-    for (let i = 0; i < h.length; i++) {
-        if (h[i] <= 0 || isnearedge(h.mesh, i)) continue;
-        let nbs = neighboursCopy(h.mesh, i);
+    for (let i = 0; i < h.length; i++)
+    {
+        if (h[i] <= 0 || mesher.isnearedge(mesh, i)) continue;
+        let nbs = mesher.neighboursCopy(mesh, i);
         nbs.push(i);
         let s = 0;
         let s2 = 0;
         for (let j = 0; j < nbs.length; j++) {
-            let slopes = trislope(h, nbs[j]);
+            let slopes = eroder.trislope(mesh, nbs[j]);
             s += slopes[0] / 10;
             s2 += slopes[1];
         }
@@ -100,8 +106,8 @@ function visualizeSlopes(svg, render)
         let l = r * runif(1, 2) *
             (1 - 0.2 * Math.pow(Math.atan(s), 2)) *
             Math.exp(s2 / 100);
-        let x = h.mesh.vxs[i][0];
-        let y = h.mesh.vxs[i][1];
+        let x = mesh.vxs[i][0];
+        let y = mesh.vxs[i][1];
         if (Math.abs(l * s) > 2 * r) {
             let n = Math.floor(Math.abs(l * s / r));
             l /= n;
@@ -109,12 +115,19 @@ function visualizeSlopes(svg, render)
             for (let j = 0; j < n; j++) {
                 let u = randomGenerator.rnorm() * r;
                 let v = randomGenerator.rnorm() * r;
-                strokes.push([[x + u - l, y + v + l * s], [x + u + l, y + v - l * s]]);
+                strokes.push([
+                    [x + u - l, y + v + l * s],
+                    [x + u + l, y + v - l * s]
+                ]);
             }
         } else {
-            strokes.push([[x - l, y + l * s], [x + l, y - l * s]]);
+            strokes.push([
+                [x - l, y + l * s],
+                [x + l, y - l * s]
+            ]);
         }
     }
+
     let lines = svg.selectAll('line.slope').data(strokes)
     lines.enter()
         .append('line')
@@ -122,18 +135,10 @@ function visualizeSlopes(svg, render)
     lines.exit()
         .remove();
     svg.selectAll('line.slope')
-        .attr('x1', function (d) {
-            return 1000 * d[0][0]
-        })
-        .attr('y1', function (d) {
-            return 1000 * d[0][1]
-        })
-        .attr('x2', function (d) {
-            return 1000 * d[1][0]
-        })
-        .attr('y2', function (d) {
-            return 1000 * d[1][1]
-        })
+        .attr('x1', d => 1000 * d[0][0])
+        .attr('y1', d => 1000 * d[0][1])
+        .attr('x2', d => 1000 * d[1][0])
+        .attr('y2', d => 1000 * d[1][1])
 }
 
 // function visualizeContour(h, level)
@@ -149,11 +154,11 @@ function visualizeSlopes(svg, render)
 //     drawPaths('border', links);
 // }
 
-function visualizeCities(svg, render)
+function visualizeCities(svg, country)
 {
-    let cities = render.cities;
-    let h = render.h;
-    let n = render.params.nterrs;
+    let cities = country.cities;
+    let mesh = country.mesh;
+    let n = country.params.nterrs;
 
     let circs = svg.selectAll('circle.city').data(cities);
     circs.enter()
@@ -163,10 +168,10 @@ function visualizeCities(svg, render)
         .remove();
     svg.selectAll('circle.city')
         .attr('cx', function (d) {
-            return 1000 * h.mesh.vxs[d][0]
+            return 1000 * mesh.vxs[d][0]
         })
         .attr('cy', function (d) {
-            return 1000 * h.mesh.vxs[d][1]
+            return 1000 * mesh.vxs[d][1]
         })
         .attr('r', function (d, i) {
             return i >= n ? 4 : 10
@@ -178,18 +183,18 @@ function visualizeCities(svg, render)
         .raise();
 }
 
-function drawMap(svg, render)
+function drawMap(svg, country)
 {
-    render.rivers = getRivers(render.h, 0.01);
-    render.coasts = contour(render.h, 0);
-    render.terr = getTerritories(render);
-    render.borders = getBorders(render);
-    drawPaths(svg, 'river', render.rivers);
-    drawPaths(svg, 'coast', render.coasts);
-    drawPaths(svg, 'border', render.borders);
-    visualizeSlopes(svg, render);
-    visualizeCities(svg, render);
-    drawLabels(svg, render);
+    country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
+    country.coasts = mesher.contour(country.mesh, 0);
+    country.terr = cityPlacer.getTerritories(country);
+    country.borders = cityPlacer.getBorders(country);
+    drawPaths(svg, 'river', country.rivers);
+    drawPaths(svg, 'coast', country.coasts);
+    drawPaths(svg, 'border', country.borders);
+    visualizeSlopes(svg, country.mesh, country.mesh.buffer);
+    visualizeCities(svg, country);
+    drawLabels(svg, country);
 }
 
 export {

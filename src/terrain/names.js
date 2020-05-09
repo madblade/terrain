@@ -9,39 +9,43 @@ let NameGiver = function()
     this.buffer = [];
 };
 
-function terrCenter(h, terr, city, landOnly)
+function terrCenter(mesh, terr, city, landOnly)
 {
+    let h = mesh.buffer;
     let x = 0;
     let y = 0;
     let n = 0;
-    for (let i = 0; i < terr.length; i++) {
+    for (let i = 0; i < terr.length; i++)
+    {
         if (terr[i] !== city) continue;
         if (landOnly && h[i] <= 0) continue;
-        x += terr.mesh.vxs[i][0];
-        y += terr.mesh.vxs[i][1];
+        x += mesh.vxs[i][0];
+        y += mesh.vxs[i][1];
         n++;
     }
-    return [x/n, y/n];
+    return [x / n, y / n];
 }
 
-function drawLabels(svg, render)
+function drawLabels(svg, country)
 {
-    let params = render.params;
-    let h = render.h;
-    let terr = render.terr;
-    let cities = render.cities;
-    let nterrs = render.params.nterrs;
-    let avoids = [render.rivers, render.coasts, render.borders];
+    let params = country.params;
+    let mesh = country.mesh;
+    let h = mesh.buffer;
+    // let h = country.h;
+    let terr = country.terr;
+    let cities = country.cities;
+    let nterrs = country.params.nterrs;
+    let avoids = [country.rivers, country.coasts, country.borders];
     let lang = makeRandomLanguage();
     let citylabels = [];
 
     function penalty(label)
     {
         let pen = 0;
-        if (label.x0 < -0.45 * h.mesh.extent.width) pen += 100;
-        if (label.x1 > 0.45 * h.mesh.extent.width) pen += 100;
-        if (label.y0 < -0.45 * h.mesh.extent.height) pen += 100;
-        if (label.y1 > 0.45 * h.mesh.extent.height) pen += 100;
+        if (label.x0 < -0.45 * mesh.extent.width) pen += 100;
+        if (label.x1 > 0.45 * mesh.extent.width) pen += 100;
+        if (label.y0 < -0.45 * mesh.extent.height) pen += 100;
+        if (label.y1 > 0.45 * mesh.extent.height) pen += 100;
         for (let i = 0; i < citylabels.length; i++) {
             let olabel = citylabels[i];
             if (label.x0 < olabel.x1 && label.x1 > olabel.x0 &&
@@ -51,7 +55,7 @@ function drawLabels(svg, render)
         }
 
         for (let i = 0; i < cities.length; i++) {
-            let c = h.mesh.vxs[cities[i]];
+            let c = mesh.vxs[cities[i]];
             if (label.x0 < c[0] && label.x1 > c[0] && label.y0 < c[1] && label.y1 > c[1]) {
                 pen += 100;
             }
@@ -73,8 +77,8 @@ function drawLabels(svg, render)
 
     for (let i = 0; i < cities.length; i++)
     {
-        let x = h.mesh.vxs[cities[i]][0];
-        let y = h.mesh.vxs[cities[i]][1];
+        let x = mesh.vxs[cities[i]][0];
+        let y = mesh.vxs[cities[i]][1];
         let text = makeName(lang, 'city');
         let size = i < nterrs ? params.fontsizes.city : params.fontsizes.town;
         let sx = 0.65 * size/1000 * text.length;
@@ -134,8 +138,8 @@ function drawLabels(svg, render)
     texts.exit()
         .remove();
     svg.selectAll('text.city')
-        .attr('x', function (d) {return 1000*d.x})
-        .attr('y', function (d) {return 1000*d.y})
+        .attr('x', function (d) {return 1000 * d.x})
+        .attr('y', function (d) {return 1000 * d.y})
         .style('font-size', function (d) {return d.size})
         .style('text-anchor', function (d) {return d.align})
         .text(function (d) {return d.text})
@@ -148,13 +152,13 @@ function drawLabels(svg, render)
         let text = makeName(lang, 'region');
         let sy = params.fontsizes.region / 1000;
         let sx = 0.6 * text.length * sy;
-        let lc = terrCenter(h, terr, city, true);
-        let oc = terrCenter(h, terr, city, false);
+        let lc = terrCenter(mesh, terr, city, true);
+        let oc = terrCenter(mesh, terr, city, false);
         let best = 0;
         let bestscore = -999999;
         for (let j = 0; j < h.length; j++) {
             let score = 0;
-            let v = h.mesh.vxs[j];
+            let v = mesh.vxs[j];
             score -= 3000 * Math.sqrt(
                 Math.pow(v[0] - lc[0], 2) + Math.pow(v[1] - lc[1], 2)
             );
@@ -163,7 +167,7 @@ function drawLabels(svg, render)
             );
             if (terr[j] !== city) score -= 3000;
             for (let k = 0; k < cities.length; k++) {
-                let u = h.mesh.vxs[cities[k]];
+                let u = mesh.vxs[cities[k]];
                 if (Math.abs(v[0] - u[0]) < sx &&
                     Math.abs(v[1] - sy/2 - u[1]) < sy) {
                     score -= k < nterrs ? 4000 : 500;
@@ -185,10 +189,10 @@ function drawLabels(svg, render)
                 }
             }
             if (h[j] <= 0) score -= 500;
-            if (v[0] + sx/2 > 0.5 * h.mesh.extent.width) score -= 50000;
-            if (v[0] - sx/2 < -0.5 * h.mesh.extent.width) score -= 50000;
-            if (v[1] > 0.5 * h.mesh.extent.height) score -= 50000;
-            if (v[1] - sy < -0.5 * h.mesh.extent.height) score -= 50000;
+            if (v[0] + sx/2 > 0.5 * mesh.extent.width) score -= 50000;
+            if (v[0] - sx/2 < -0.5 * mesh.extent.width) score -= 50000;
+            if (v[1] > 0.5 * mesh.extent.height) score -= 50000;
+            if (v[1] - sy < -0.5 * mesh.extent.height) score -= 50000;
             if (score > bestscore) {
                 bestscore = score;
                 best = j;
@@ -196,10 +200,10 @@ function drawLabels(svg, render)
         }
         reglabels.push({
             text: text,
-            x: h.mesh.vxs[best][0],
-            y: h.mesh.vxs[best][1],
-            size:sy,
-            width:sx
+            x: mesh.vxs[best][0],
+            y: mesh.vxs[best][1],
+            size: sy,
+            width: sx
         });
     }
 
@@ -210,11 +214,11 @@ function drawLabels(svg, render)
     texts.exit()
         .remove();
     svg.selectAll('text.region')
-        .attr('x', function (d) {return 1000*d.x})
-        .attr('y', function (d) {return 1000*d.y})
-        .style('font-size', function (d) {return 1000*d.size})
+        .attr('x', d => 1000 * d.x)
+        .attr('y', d => 1000 * d.y)
+        .style('font-size', d => 1000 * d.size)
         .style('text-anchor', 'middle')
-        .text(function (d) {return d.text})
+        .text(d => d.text)
         .raise();
 }
 

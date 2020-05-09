@@ -1,8 +1,9 @@
 
 import { Random } from './random';
+import { Mesher } from './mesh';
+import * as d3    from 'd3';
 
-import { neighbours } from './mesh';
-
+let mesher = new Mesher();
 let randomGenerator = new Random('rough');
 
 let FieldModifier = function()
@@ -23,6 +24,15 @@ FieldModifier.prototype.swapBuffers = function(otherObject)
     let tempBuffer = this.buffer;
     this.buffer = otherObject.buffer;
     otherObject.buffer = tempBuffer;
+}
+
+FieldModifier.prototype.addScalar = function(mesh, scalar)
+{
+    let buffer = mesh.buffer;
+    for (let i = 0, l = buffer.length; i < l; i++)
+    {
+        buffer[i] += scalar;
+    }
 }
 
 FieldModifier.prototype.apply1D = function(mesh, mapper1D)
@@ -52,7 +62,7 @@ FieldModifier.prototype.addSlope = function(mesh, direction)
     this.apply2D(mesh, v => v[0] * dx + v[1] * dy);
 }
 
-FieldModifier.prototype.addCone = function (mesh, slope)
+FieldModifier.prototype.addCone = function(mesh, slope)
 {
     this.apply2D(mesh,
     v => Math.sqrt(
@@ -60,82 +70,89 @@ FieldModifier.prototype.addCone = function (mesh, slope)
     ) * slope);
 }
 
-function copy1D(h, mapper1D)
+FieldModifier.prototype.resetField = function(mesh)
 {
-    let z = [];
-    for (let i = 0, l = h.length, v; i < l; i++) {
-        v = h[i];
-        z[i] = mapper1D(v);
-    }
-    z.mesh = h.mesh;
-    return z;
+    let buffer = mesh.buffer;
+    for (let i = 0, l = buffer.length; i < l; ++i)
+        buffer[i] = 0;
 }
 
-function copy2D(mesh, mapper2D)
-{
-    let vxs = mesh.vxs;
-    let z = [];
-    for (let i = 0, l = vxs.length, v; i < l; i++) {
-        v = vxs[i];
-        z[i] = mapper2D(v);
-    }
-    z.mesh = mesh;
-    return z;
-}
+// function copy1D(h, mapper1D)
+// {
+//     let z = [];
+//     for (let i = 0, l = h.length, v; i < l; i++) {
+//         v = h[i];
+//         z[i] = mapper1D(v);
+//     }
+//     z.mesh = h.mesh;
+//     return z;
+// }
 
-function zero(mesh)
-{
-    let z = [];
-    let vxs =  mesh.vxs;
-    for (let i = 0, l = vxs.length; i < l; i++) {
-        z[i] = 0;
-    }
-    z.mesh = mesh;
-    return z;
-    // return {
-    //     buffer: z,
-    //     mesh: mesh
-    // };
-}
+// function copy2D(mesh, mapper2D)
+// {
+//     let vxs = mesh.vxs;
+//     let z = [];
+//     for (let i = 0, l = vxs.length, v; i < l; i++) {
+//         v = vxs[i];
+//         z[i] = mapper2D(v);
+//     }
+//     z.mesh = mesh;
+//     return z;
+// }
 
-function slope(mesh, direction)
-{
-    let newh = copy2D(mesh,
-        x => x[0] * direction[0] + x[1] * direction[1]
-    );
-    return newh;
-}
+// function zero(mesh)
+// {
+//     let z = [];
+//     let vxs =  mesh.vxs;
+//     for (let i = 0, l = vxs.length; i < l; i++) {
+//         z[i] = 0;
+//     }
+//     z.mesh = mesh;
+//     return z;
+//     // return {
+//     //     buffer: z,
+//     //     mesh: mesh
+//     // };
+// }
 
-function cone(mesh, slope)
-{
-    let newh = copy2D(mesh, x => Math.sqrt(
-        Math.pow(x[0], 2) + Math.pow(x[1], 2)
-        ) * slope
-    );
-    return newh;
-}
+// function slope(mesh, direction)
+// {
+//     let newh = copy2D(mesh,
+//         x => x[0] * direction[0] + x[1] * direction[1]
+//     );
+//     return newh;
+// }
 
-function applyTransform(h, f)
-{
-    let newh = copy1D(h, f);
-    return newh;
-}
+// function cone(mesh, slope)
+// {
+//     let newh = copy2D(mesh, x => Math.sqrt(
+//         Math.pow(x[0], 2) + Math.pow(x[1], 2)
+//         ) * slope
+//     );
+//     return newh;
+// }
 
-function sumFields(fields)
-{
-    let n = fields[0].length;
-    let newvals = zero(fields[0].mesh);
-    for (let i = 0; i < n; i++)
-    {
-        for (let j = 0; j < fields.length; j++) {
-            newvals[i] += fields[j][i];
-        }
-    }
+// function applyTransform(h, f)
+// {
+//     let newh = copy1D(h, f);
+//     return newh;
+// }
 
-    return newvals;
-}
+// function sumFields(fields)
+// {
+//     let n = fields[0].length;
+//     let newvals = zero(fields[0].mesh);
+//     for (let i = 0; i < n; i++)
+//     {
+//         for (let j = 0; j < fields.length; j++) {
+//             newvals[i] += fields[j][i];
+//         }
+//     }
+//
+//     return newvals;
+// }
 
-function mountains(mesh, n, r)
+FieldModifier.prototype.addMountains = function(mesh, n, r)
 {
     r = r || 0.05;
     let mounts = [];
@@ -146,10 +163,12 @@ function mountains(mesh, n, r)
         mounts.push([mesh.extent.width * (r1 - 0.5), mesh.extent.height * (r2 - 0.5)]);
     }
 
-    let newvals = zero(mesh);
-    for (let i = 0; i < mesh.vxs.length; i++)
+    let newvals = mesh.buffer
+    this.resetField(mesh);
+    let vxs = mesh.vxs;
+    for (let i = 0; i < vxs.length; i++)
     {
-        let p = mesh.vxs[i];
+        let p = vxs[i];
         for (let j = 0; j < n; j++) {
             let m = mounts[j];
             newvals[i] +=
@@ -160,18 +179,69 @@ function mountains(mesh, n, r)
         }
     }
 
-    return newvals;
+    // return newvals;
 }
 
-function normalize(h)
+FieldModifier.prototype.normalize = function(mesh)
 {
-    let lo = min(h);
-    let hi = max(h);
-    return applyTransform(h, function (x) {return (x - lo) / (hi - lo)});
+    let lo = min(mesh.buffer);
+    let hi = max(mesh.buffer);
+    // return applyTransform(h, function (x) {return (x - lo) / (hi - lo)});
+    this.apply1D(mesh, function (x) {return (x - lo) / (hi - lo)});
 }
 
-function peaky(h) {
-    return applyTransform(normalize(h), Math.sqrt);
+FieldModifier.prototype.peaky = function(mesh)
+{
+    this.normalize(mesh);
+    this.apply1D(mesh, Math.sqrt);
+}
+
+FieldModifier.prototype.relax = function(mesh)
+{
+    // let newh = zero(h.mesh);
+    this.resetBuffer(mesh.buffer.length);
+    // this.resetField(mesh);
+    let newh = this.buffer;
+    let field = mesh.buffer;
+
+    for (let i = 0; i < field.length; i++)
+    {
+        let nbs = mesher.neighbours(mesh, i);
+        if (nbs.length < 3) {
+            newh[i] = 0;
+            continue;
+        }
+        newh[i] = mean(nbs, field);
+    }
+    this.swapBuffers(mesh);
+
+    // return newh;
+}
+
+FieldModifier.prototype.setSeaLevel = function(mesh, q)
+{
+    let delta = quantile(mesh, q);
+    this.addScalar(mesh, -delta);
+    // let newh = zero(mesh.mesh);
+    // for (let i = 0; i < mesh.length; i++) {
+    //     newh[i] = mesh[i] - delta;
+    // }
+    // return newh;
+}
+
+// Math util functions
+
+function quantile(mesh, q)
+{
+    let h = mesh.buffer;
+    let sortedh = [];
+    for (let i = 0; i < h.length; i++) {
+        sortedh[i] = h[i];
+    }
+    sortedh.sort(
+        // d3.ascending
+    );
+    return d3.quantile(sortedh, q);
 }
 
 function mean(indexArray, array)
@@ -184,22 +254,6 @@ function mean(indexArray, array)
     }
     return m / n;
 }
-
-function relax(h)
-{
-    let newh = zero(h.mesh);
-    for (let i = 0; i < h.length; i++) {
-        let nbs = neighbours(h.mesh, i);
-        if (nbs.length < 3) {
-            newh[i] = 0;
-            continue;
-        }
-        newh[i] = mean(nbs, h);
-    }
-    return newh;
-}
-
-// Math util functions
 
 function min(array)
 {
@@ -259,14 +313,6 @@ function minArg(array, compare)
 }
 
 export {
-    applyTransform,
-    zero,
-    slope,
-    cone,
-    sumFields,
+    FieldModifier,
     min, max, maxArg, minArg,
-    mountains,
-    peaky,
-    normalize,
-    relax,
 }

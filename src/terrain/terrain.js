@@ -4,51 +4,30 @@ import * as d3 from 'd3';
 import { Random } from './random';
 
 import {
-    zero,
-    slope,
-    cone,
-    mountains,
-    peaky,
-    relax, sumFields,
+    FieldModifier,
 } from './rough';
 import {
-    doErosion, fillSinks, cleanCoast,
+    Eroder,
 } from './erosion';
-import { generateGoodMesh } from './mesh';
+
+import { Mesher } from './mesh';
+
+let mesher = new Mesher();
+let fieldModifier = new FieldModifier();
+let eroder = new Eroder();
 
 let mainRandomGenerator = new Random('terrain');
 function randomVector(scale)
 {
-    let r = mainRandomGenerator.rnorm(); // rnorm();
-    return [scale * r, scale * r];
+    let r1 = mainRandomGenerator.rnorm(); // rnorm();
+    // let r2 = mainRandomGenerator.rnorm(); // rnorm();
+    return [scale * r1, scale * r1];
 }
 function runif(lo, hi)
 {
     let r = mainRandomGenerator.uniform();
     return lo + r * (hi - lo);
     // return lo + Math.random() * (hi - lo);
-}
-
-function quantile(h, q)
-{
-    let sortedh = [];
-    for (let i = 0; i < h.length; i++) {
-        sortedh[i] = h[i];
-    }
-    sortedh.sort(
-        // d3.ascending
-    );
-    return d3.quantile(sortedh, q);
-}
-
-function setSeaLevel(h, q)
-{
-    let newh = zero(h.mesh);
-    let delta = quantile(h, q);
-    for (let i = 0; i < h.length; i++) {
-        newh[i] = h[i] - delta;
-    }
-    return newh;
 }
 
 let TerrainGenerator = function()
@@ -60,42 +39,51 @@ let TerrainGenerator = function()
 // TODO macroscopic noise
 function generateCoast(params)
 {
-    let mesh = generateGoodMesh(params.npts, params.extent);
-    let h = sumFields([
-        slope(mesh, randomVector(4)),
-        cone(mesh, runif(-1, -1)),
-        mountains(mesh, 50)
-    ]);
+    let mesh = mesher.generateGoodMesh(params.npts, params.extent);
+    fieldModifier.addSlope(mesh, randomVector(4));
+    fieldModifier.addCone(mesh, runif(-1, -1));
+    fieldModifier.addMountains(mesh, 50);
+    // let h = sumFields([
+    //     slope(mesh, randomVector(4)),
+    //     cone(mesh, runif(-1, -1)),
+    //     mountains(mesh, 50)
+    // ]);
     for (let i = 0; i < 10; i++) {
-        h = relax(h);
+        fieldModifier.relax(mesh);
+        // h = relax(h);
     }
-    h = peaky(h);
+    fieldModifier.peaky(mesh);
+    // h = peaky(h);
 
     let el = runif(0, 0.1);
-    h = doErosion(h, el, 5);
+    eroder.doErosion(mesh, el, 5);
 
     let sl = runif(0.2, 0.6);
-    h = setSeaLevel(h, sl);
+    fieldModifier.setSeaLevel(mesh, sl);
 
-    h = fillSinks(h);
-    h = cleanCoast(h, 3);
+    eroder.fillSinks(mesh);
+    eroder.cleanCoast(mesh, 3);
 
-    console.log(h);
-    return h;
+    console.log(mesh);
+    return mesh;
 }
 
-function generateUneroded()
+function generateUneroded(mainSize)
 {
-    let mesh = generateGoodMesh(mainSize);
-    let h = sumFields([
-        slope(mesh, randomVector(4)),
-        cone(mesh, runif(-1, 1)),
-        mountains(mesh, 50)]
-    );
-    h = peaky(h);
-    h = fillSinks(h);
-    h = setSeaLevel(h, 0.5);
-    return h;
+    let mesh = mesher.generateGoodMesh(mainSize);
+    // let h = sumFields([
+    fieldModifier.addSlope(mesh, randomVector(4));
+    fieldModifier.addCone(mesh, runif(-1, 1));
+    fieldModifier.addMountains(mesh, 50);
+        // slope(mesh, randomVector(4)),
+        // cone(mesh, runif(-1, 1)),
+        // mountains(mesh, 50)]
+    // );
+    fieldModifier.peaky(mesh);
+    // h = peaky(h);
+    eroder.fillSinks(mesh);
+    fieldModifier.setSeaLevel(mesh, 0.5);
+    return mesh;
 }
 
 let defaultExtent = {
@@ -117,9 +105,7 @@ let defaultParams = {
 }
 
 export {
-    setSeaLevel,
-    runif,
-    randomVector,
+    runif, randomVector,
     generateCoast, generateUneroded,
     defaultExtent, defaultParams
 };
