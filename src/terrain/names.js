@@ -1,15 +1,16 @@
 
-import {
-    makeName, makeRandomLanguage
-}                 from '../language';
 import { minArg } from './math';
 
-let NameGiver = function()
+let NameGiver = function(languageGenerator)
 {
+    if (!languageGenerator) throw Error('Invalid argument.');
+
     this.buffer = [];
+
+    this.languageGenerator = languageGenerator;
 };
 
-function terrCenter(mesh, terr, city, landOnly)
+NameGiver.prototype.terrCenter = function(mesh, terr, city, landOnly)
 {
     let h = mesh.buffer;
     let x = 0;
@@ -26,8 +27,10 @@ function terrCenter(mesh, terr, city, landOnly)
     return [x / n, y / n];
 }
 
-function drawLabels(svg, country)
+NameGiver.prototype.drawLabels = function(svg, country)
 {
+    const rlg = this.languageGenerator;
+
     let params = country.params;
     let mesh = country.mesh;
     let h = mesh.buffer;
@@ -35,7 +38,7 @@ function drawLabels(svg, country)
     let cities = country.cities;
     let nterrs = country.params.nterrs;
     let avoids = [country.rivers, country.coasts, country.borders];
-    let lang = makeRandomLanguage();
+    let lang = rlg.makeRandomLanguage();
     let citylabels = [];
 
     function penalty(label)
@@ -78,7 +81,7 @@ function drawLabels(svg, country)
     {
         let x = mesh.vxs[cities[i]][0];
         let y = mesh.vxs[cities[i]][1];
-        let text = makeName(lang, 'city');
+        let text = rlg.makeName(lang, 'city');
         let size = i < nterrs ? params.fontsizes.city : params.fontsizes.town;
         let sx = 0.65 * size / 1000 * text.length;
         let sy = size / 1000;
@@ -121,10 +124,10 @@ function drawLabels(svg, country)
             }
         ];
 
-        let comparator = function (a, b) {return penalty(a) - penalty(b)};
         let label = posslabels[
-            minArg(posslabels, comparator)
-            ];
+            minArg(posslabels,(a, b) => penalty(a) - penalty(b))
+        ];
+
         label.text = text;
         label.size = size;
         citylabels.push(label);
@@ -148,11 +151,11 @@ function drawLabels(svg, country)
     for (let i = 0; i < nterrs; i++)
     {
         let city = cities[i];
-        let text = makeName(lang, 'region');
+        let text = rlg.makeName(lang, 'region');
         let sy = params.fontsizes.region / 1000;
         let sx = 0.6 * text.length * sy;
-        let lc = terrCenter(mesh, terr, city, true);
-        let oc = terrCenter(mesh, terr, city, false);
+        let lc = this.terrCenter(mesh, terr, city, true);
+        let oc = this.terrCenter(mesh, terr, city, false);
         let best = 0;
         let bestscore = -999999;
         for (let j = 0; j < h.length; j++) {
@@ -222,5 +225,5 @@ function drawLabels(svg, country)
 }
 
 export {
-    drawLabels
+    NameGiver
 };

@@ -1,25 +1,26 @@
 
 import * as d3 from 'd3';
 
-import { Random }     from './random';
-import {
-    Mesher
-}                     from './mesh';
-import { runif }      from './terrain';
-import { drawLabels } from './names';
-import { Eroder }     from './erosion';
-import { CityPlacer } from './cities';
-import { max, min }   from './math';
-
-let mesher = new Mesher();
-let eroder = new Eroder();
-let cityPlacer = new CityPlacer();
+import { Random }           from './random';
+import { max, min }         from './math';
 
 let d3selectAll = d3.selectAll;
 let d3interpolateViridis = d3.interpolateViridis;
 let d3path = d3.path;
 
-function visualizePoints(svg, pts)
+let SVGDrawer = function(
+    mesher, eroder,
+    terrainGenerator, cityPlacer, nameGiver
+)
+{
+    this.mesher = mesher;
+    this.eroder = eroder;
+    this.terrainGenerator = terrainGenerator;
+    this.cityPlacer = cityPlacer;
+    this.nameGiver = nameGiver;
+};
+
+SVGDrawer.prototype.visualizePoints = function(svg, pts)
 {
     let circle = svg.selectAll('circle.vtest').data(pts);
     circle.enter()
@@ -32,7 +33,7 @@ function visualizePoints(svg, pts)
         .attr('r', 100 / Math.sqrt(pts.length));
 }
 
-function makeD3Path(path)
+SVGDrawer.prototype.makeD3Path = function(path)
 {
     let p = d3path();
     p.moveTo(1000 * path[0][0], 1000 * path[0][1]);
@@ -42,7 +43,7 @@ function makeD3Path(path)
     return p.toString();
 }
 
-function visualizeVoronoi(svg, mesh, field, lo, hi)
+SVGDrawer.prototype.visualizeVoronoi = function(svg, mesh, field, lo, hi)
 {
     let tris = mesh.tris;
     if (hi === undefined) hi = max(field) + 1e-9;
@@ -59,13 +60,13 @@ function visualizeVoronoi(svg, mesh, field, lo, hi)
         .remove();
 
     svg.selectAll('path.field')
-        .attr('d', makeD3Path)
+        .attr('d', this.makeD3Path)
         .style('fill', (d, i) =>
             d3interpolateViridis(mappedvals[i])
         );
 }
 
-function drawPaths(svg, cls, paths)
+SVGDrawer.prototype.drawPaths = function(svg, cls, paths)
 {
     paths = svg.selectAll('path.' + cls).data(paths)
     paths.enter()
@@ -74,11 +75,15 @@ function drawPaths(svg, cls, paths)
     paths.exit()
         .remove();
     svg.selectAll('path.' + cls)
-        .attr('d', makeD3Path);
+        .attr('d', this.makeD3Path);
 }
 
-function visualizeSlopes(svg, mesh, field)
+SVGDrawer.prototype.visualizeSlopes = function(svg, mesh, field)
 {
+    const mesher = this.mesher;
+    const terrainGenerator = this.terrainGenerator;
+    const eroder = this.eroder;
+
     let randomGenerator = new Random('vslopes');
     let h = field;
     let strokes = [];
@@ -97,8 +102,8 @@ function visualizeSlopes(svg, mesh, field)
         }
         s /= nbs.length;
         s2 /= nbs.length;
-        if (Math.abs(s) < runif(0.1, 0.4)) continue;
-        let l = r * runif(1, 2) *
+        if (Math.abs(s) < terrainGenerator.runif(0.1, 0.4)) continue;
+        let l = r * terrainGenerator.runif(1, 2) *
             (1 - 0.2 * Math.pow(Math.atan(s), 2)) *
             Math.exp(s2 / 100);
         let x = mesh.vxs[i][0];
@@ -136,7 +141,7 @@ function visualizeSlopes(svg, mesh, field)
         .attr('y2', d => 1000 * d[1][1])
 }
 
-function visualizeCities(svg, country)
+SVGDrawer.prototype.visualizeCities = function(svg, country)
 {
     let cities = country.cities;
     let mesh = country.mesh;
@@ -159,24 +164,24 @@ function visualizeCities(svg, country)
         .raise();
 }
 
-function drawMap(svg, country)
+SVGDrawer.prototype.drawMap = function(svg, country)
 {
+    const mesher = this.mesher;
+    const cityPlacer = this.cityPlacer;
+    const nameGiver = this.nameGiver;
+
     country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
     country.coasts = mesher.contour(country.mesh, 0);
     country.terr = cityPlacer.getTerritories(country);
     country.borders = cityPlacer.getBorders(country);
-    drawPaths(svg, 'river', country.rivers);
-    drawPaths(svg, 'coast', country.coasts);
-    drawPaths(svg, 'border', country.borders);
-    visualizeSlopes(svg, country.mesh, country.mesh.buffer);
-    visualizeCities(svg, country);
-    drawLabels(svg, country);
+    this.drawPaths(svg, 'river', country.rivers);
+    this.drawPaths(svg, 'coast', country.coasts);
+    this.drawPaths(svg, 'border', country.borders);
+    this.visualizeSlopes(svg, country.mesh, country.mesh.buffer);
+    this.visualizeCities(svg, country);
+    nameGiver.drawLabels(svg, country);
 }
 
 export {
-    visualizeVoronoi,
-    drawPaths,
-    visualizeCities, visualizePoints, visualizeSlopes,
-    drawMap,
-    makeD3Path
+    SVGDrawer
 }

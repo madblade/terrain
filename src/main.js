@@ -3,39 +3,30 @@ import * as d3 from 'd3';
 
 import {
     defaultExtent,
-    defaultParams,
-    generateCoast,
-    randomVector, generateUneroded,
+    defaultParams, TerrainGenerator,
 } from './terrain/terrain';
 
-import {
-    drawMap,
-    drawPaths,
-    visualizeCities,
-    visualizePoints,
-    visualizeSlopes,
-    visualizeVoronoi,
-} from './terrain/render';
-
-import {
-    CityPlacer
-} from './terrain/cities';
-
-import {
-    Eroder
-} from './terrain/erosion';
-
-import { FieldModifier } from './terrain/modifier';
-
-import { Mesher} from "./terrain/mesh";
-import { max }   from './terrain/math';
+import { SVGDrawer }         from './terrain/render';
+import { CityPlacer }        from './terrain/cities';
+import { Eroder }            from './terrain/erosion';
+import { FieldModifier }     from './terrain/modifier';
+import { Mesher}             from './terrain/mesh';
+import { max }               from './terrain/math';
+import { NameGiver }         from './terrain/names';
+import { LanguageGenerator } from './language';
 
 let d3select = d3.select;
 
 let mesher = new Mesher();
-let fieldModifier = new FieldModifier();
-let eroder = new Eroder();
-let cityPlacer = new CityPlacer();
+let fieldModifier = new FieldModifier(mesher);
+let eroder = new Eroder(mesher);
+
+let cityPlacer = new CityPlacer(mesher, fieldModifier, eroder);
+let terrainGenerator = new TerrainGenerator(mesher, fieldModifier, eroder);
+let languageGenerator = new LanguageGenerator();
+let nameGiver = new NameGiver(languageGenerator);
+
+let svgDrawer = new SVGDrawer(mesher, eroder, terrainGenerator, cityPlacer, nameGiver);
 
 function addSVG(div) {
     return div.insert("svg", ":first-child")
@@ -50,11 +41,12 @@ let meshPts = null;
 let meshVxs = null;
 let meshDual = false;
 
-function meshDraw() {
-    if (meshDual && !meshVxs) {
+function meshDraw()
+{
+    if (meshDual && !meshVxs)
         meshVxs = mesher.makeMesh(meshPts).vxs;
-    }
-    visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
+
+    svgDrawer.visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
 }
 
 meshDiv.append("button")
@@ -95,9 +87,9 @@ fieldModifier.resetField(primH);
 
 function primDraw()
 {
-    visualizeVoronoi(primSVG, primH, primH.buffer, -1, 1);
+    svgDrawer.visualizeVoronoi(primSVG, primH, primH.buffer, -1, 1);
     let con = mesher.contour(primH, 0);
-    drawPaths(primSVG, 'coast', con);
+    svgDrawer.drawPaths(primSVG, 'coast', con);
 }
 
 primDraw();
@@ -113,7 +105,7 @@ primDiv.append("button")
     .text("Add random slope")
     .on("click", () => {
         fieldModifier.resetField(primH);
-        fieldModifier.addSlope(primH, randomVector(4));
+        fieldModifier.addSlope(primH, terrainGenerator.randomVector(4));
         primDraw();
     });
 
@@ -179,17 +171,17 @@ function erodeDraw()
 {
     if (erodeViewErosion) {
         let erosionRate = eroder.erosionRate(erodeH);
-        visualizeVoronoi(erodeSVG, erodeH, erosionRate);
+        svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erosionRate);
     } else {
-        visualizeVoronoi(erodeSVG, erodeH, erodeH.buffer, 0, 1);
+        svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erodeH.buffer, 0, 1);
     }
-    drawPaths(erodeSVG, "coast", mesher.contour(erodeH, 0));
+    svgDrawer.drawPaths(erodeSVG, "coast", mesher.contour(erodeH, 0));
 }
 
 erodeDiv.append("button")
     .text("Generate random heightmap")
     .on("click", () => {
-        erodeH = generateUneroded(mainSize);
+        erodeH = terrainGenerator.generateUneroded(mainSize);
         erodeDraw();
     });
 
@@ -213,7 +205,6 @@ erodeDiv.append("button")
         fieldModifier.setSeaLevel(erodeH, 0.5);
         erodeDraw();
     });
-
 
 erodeDiv.append("button")
     .text("Clean coastlines")
@@ -246,33 +237,35 @@ let physViewHeight = true;
 function physDraw()
 {
     if (physViewHeight)
-        visualizeVoronoi(physSVG, physH, physH.buffer, 0);
+        svgDrawer.visualizeVoronoi(physSVG, physH, physH.buffer, 0);
     else
         physSVG.selectAll("path.field").remove();
 
     if (physViewCoast)
-        drawPaths(physSVG, "coast", mesher.contour(physH, 0));
+        svgDrawer.drawPaths(physSVG, "coast", mesher.contour(physH, 0));
     else
-        drawPaths(physSVG, "coast", []);
+        svgDrawer.drawPaths(physSVG, "coast", []);
 
     if (physViewRivers) {
-        console.log('display rivers');
-        drawPaths(physSVG, "river", cityPlacer.getRivers(physH, 0.01));
+        svgDrawer.drawPaths(physSVG, "river", cityPlacer.getRivers(physH, 0.01));
     } else
-        drawPaths(physSVG, "river", []);
+        svgDrawer.drawPaths(physSVG, "river", []);
 
     if (physViewSlope)
-        visualizeSlopes(physSVG, physH, physH.buffer);
+        svgDrawer.visualizeSlopes(physSVG, physH, physH.buffer);
     else {
         let zero = [];
         for (let i = 0; i < physH.buffer.length; ++i) zero[i] = 0;
-        visualizeSlopes(physSVG, physH, zero);
+        svgDrawer.visualizeSlopes(physSVG, physH, zero);
     }
 }
+
 physDiv.append("button")
     .text("Generate random heightmap")
     .on("click", () => {
-        physH = generateCoast({ npts: mainSize, extent: defaultExtent });
+        physH = terrainGenerator.generateCoast(
+            { npts: mainSize, extent: defaultExtent }
+            );
         physDraw();
     });
 
@@ -299,7 +292,6 @@ let physRiverBut = physDiv.append("button")
         physDraw();
     });
 
-
 let physSlopeBut = physDiv.append("button")
     .text("Show slope shading")
     .on("click", () => {
@@ -307,7 +299,6 @@ let physSlopeBut = physDiv.append("button")
         physSlopeBut.text(physViewSlope ? "Hide slope shading" : "Show slope shading");
         physDraw();
     });
-
 
 let physHeightBut = physDiv.append("button")
     .text("Hide heightmap")
@@ -324,7 +315,10 @@ let cityViewScore = true;
 
 function newCountry(h)
 {
-    h = h || generateCoast({ npts: mainSize, extent: defaultExtent });
+    h = h || terrainGenerator.generateCoast(
+        { npts: mainSize, extent: defaultExtent }
+        );
+
     return {
         params: defaultParams,
         mesh: h,
@@ -338,15 +332,15 @@ function cityDraw()
     country.terr = cityPlacer.getTerritories(country);
     if (cityViewScore) {
         let score = cityPlacer.cityScore(country.mesh, country.cities);
-        visualizeVoronoi(citySVG, country.mesh, score, max(score) - 0.5);
+        svgDrawer.visualizeVoronoi(citySVG, country.mesh, score, max(score) - 0.5);
     } else {
-        visualizeVoronoi(citySVG, country.mesh, country.terr);
+        svgDrawer.visualizeVoronoi(citySVG, country.mesh, country.terr);
     }
-    drawPaths(citySVG, 'coast', mesher.contour(country.mesh, 0));
-    drawPaths(citySVG, 'river', cityPlacer.getRivers(country.mesh, 0.01));
-    drawPaths(citySVG, 'border', cityPlacer.getBorders(country));
-    visualizeSlopes(citySVG, country.mesh, country.mesh.buffer);
-    visualizeCities(citySVG, country);
+    svgDrawer.drawPaths(citySVG, 'coast', mesher.contour(country.mesh, 0));
+    svgDrawer.drawPaths(citySVG, 'river', cityPlacer.getRivers(country.mesh, 0.01));
+    svgDrawer.drawPaths(citySVG, 'border', cityPlacer.getBorders(country));
+    svgDrawer.visualizeSlopes(citySVG, country.mesh, country.mesh.buffer);
+    svgDrawer.visualizeCities(citySVG, country);
 }
 
 cityDiv.append("button")
@@ -383,7 +377,7 @@ let finalSVG = addSVG(finalDiv);
 finalDiv.append("button")
     .text("Copy map from above")
     .on("click", () => {
-        drawMap(finalSVG, country);
+        svgDrawer.drawMap(finalSVG, country);
     });
 
 finalDiv.append("button")
@@ -405,7 +399,7 @@ function doMap(svg, params)
         1000 * params.extent.height);
 
     svg.selectAll().remove();
-    country.mesh = params.generator(params);
+    country.mesh = terrainGenerator.generateCoast(params);
     cityPlacer.placeCities(country);
-    drawMap(svg, country);
+    svgDrawer.drawMap(svg, country);
 }

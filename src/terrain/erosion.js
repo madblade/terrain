@@ -1,16 +1,19 @@
 
-import { Mesher } from './mesh';
 import { max }    from './math';
 
-let mesher = new Mesher();
-
-let Eroder = function()
+let Eroder = function(
+    mesher
+)
 {
+    if (!mesher) throw Error('Invalid argument');
+
     this.buffer = [];
     this.fluxBuffer = [];
     this.slopeBuffer = [];
     this.indexBuffer = [];
     this.downhillBuffer = [];
+
+    this.mesher = mesher;
 }
 
 Eroder.prototype.resetDownhillBuffer = function(newBufferLength)
@@ -70,6 +73,8 @@ Eroder.prototype.downhill = function(mesh)
 
 Eroder.prototype.downfrom = function(mesh, i)
 {
+    const mesher = this.mesher;
+
     if (mesher.isedge(mesh, i)) return -2;
     let h = mesh.buffer;
     let best = -1;
@@ -86,6 +91,8 @@ Eroder.prototype.downfrom = function(mesh, i)
 
 Eroder.prototype.fillSinks = function(mesh, epsilon)
 {
+    const mesher = this.mesher;
+
     let h = mesh.buffer;
     epsilon = epsilon || 1e-5;
     let infinity = 999999;
@@ -122,7 +129,6 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
                 }
             }
         }
-        // if (!changed) return newh;
         if (!changed)
         {
             this.swapBuffers(mesh);
@@ -157,34 +163,10 @@ Eroder.prototype.getFlux = function(mesh)
 
     return flux;
 }
-// let idxs;
-// function getFlux(h)
-// {
-//     let dh = downhill(h);
-//     if (!idxs || idxs.length !== h.length) {
-//         idxs = new Array(h.length);
-//     }
-//     // let idxs = [];
-//     let flux = zero(h.mesh);
-//     for (let i = 0; i < h.length; i++) {
-//         idxs[i] = i;
-//         flux[i] = 1 / h.length;
-//     }
-//     idxs.sort(function (a, b) {
-//         return h[b] - h[a];
-//     });
-//     for (let i = 0; i < h.length; i++) {
-//         let j = idxs[i];
-//         if (dh[j] >= 0) {
-//             flux[dh[j]] += flux[j];
-//         }
-//     }
-//     return flux;
-// }
 
 Eroder.prototype.trislope = function(mesh, i)
 {
-    let nbs = mesher.neighbours(mesh, i);
+    let nbs = this.mesher.neighbours(mesh, i);
     if (nbs.length !== 3) return [0, 0];
     let p0 = mesh.vxs[nbs[0]];
     let p1 = mesh.vxs[nbs[1]];
@@ -234,7 +216,6 @@ Eroder.prototype.erosionRate = function(mesh)
     let nbTris = mesh.buffer.length;
     this.resetBuffer(nbTris); // this.buffer
     let newh = this.buffer;
-    // let newh = zero(h.mesh);
     for (let i = 0; i < nbTris; i++)
     {
         let river = Math.sqrt(flux[i]) * slope[i];
@@ -250,15 +231,14 @@ Eroder.prototype.erode = function(mesh, amount)
 {
     let h = mesh.buffer;
     let er = this.erosionRate(mesh); // this.buffer
-    // let newh = zero(h.mesh);
     let maxr = max(er);
     let c = amount / maxr;
+
     // TODO amount proportional to distance to the edge
     for (let i = 0; i < h.length; i++)
     {
         h[i] = h[i] - c * er[i];
     }
-    // return newh;
 }
 
 Eroder.prototype.doErosion = function(mesh, amount, n)
@@ -269,21 +249,22 @@ Eroder.prototype.doErosion = function(mesh, amount, n)
         this.erode(mesh, amount);
         this.fillSinks(mesh);
     }
-    // return h;
 }
 
 Eroder.prototype.cleanCoast = function(mesh, iters)
 {
+    const mesher = this.mesher;
     let h = mesh.buffer;
     let nbTris = h.length;
+    let newh;
 
     for (let iter = 0; iter < iters; iter++)
     {
         let changed = 0;
+
         this.resetBuffer(nbTris);
-        let newh = this.buffer;
+        newh = this.buffer;
         h = mesh.buffer;
-        // let newh = zero(h.mesh);
         for (let i = 0; i < h.length; i++) {
             newh[i] = h[i];
             let nbs = mesher.neighbours(mesh, i);
@@ -302,12 +283,10 @@ Eroder.prototype.cleanCoast = function(mesh, iters)
             changed++;
         }
         this.swapBuffers(mesh);
-        // h = newh;
 
         this.resetBuffer(nbTris);
         newh = this.buffer;
         h = mesh.buffer;
-        // newh = zero(h.mesh);
         for (let i = 0; i < h.length; i++) {
             newh[i] = h[i];
             let nbs = mesher.neighbours(mesh, i);
@@ -325,10 +304,8 @@ Eroder.prototype.cleanCoast = function(mesh, iters)
             newh[i] = best / 2;
             changed++;
         }
-        // h = newh;
         this.swapBuffers(mesh);
     }
-    // return h;
 }
 
 export {

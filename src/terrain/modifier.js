@@ -1,23 +1,24 @@
 
 import { Random }                   from './random';
-import { Mesher }                   from './mesh';
 import { max, mean, min, quantile } from './math';
-import { license }                  from 'd3/dist/package';
 
-let mesher = new Mesher();
-let randomGenerator = new Random('rough');
-
-let FieldModifier = function()
+let FieldModifier = function(
+    mesher
+)
 {
+    if (!mesher) throw Error('Invalid argument');
+
     this.buffer = [];
+    this.randomGenerator = new Random('rough');
+
+    this.mesher = mesher;
 };
 
 FieldModifier.prototype.resetBuffer = function(newBufferLength)
 {
     if (this.buffer.length !== newBufferLength)
         this.buffer = new Float64Array(newBufferLength);
-    else
-        this.buffer.fill(0);
+    else this.buffer.fill(0);
 };
 
 FieldModifier.prototype.swapBuffers = function(otherObject)
@@ -81,12 +82,14 @@ FieldModifier.prototype.resetField = function(mesh)
 
 FieldModifier.prototype.addMountains = function(mesh, n, r)
 {
+    const rng = this.randomGenerator;
+
     r = r || 0.05;
     let mounts = [];
     for (let i = 0; i < n; i++)
     {
-        let r1 = randomGenerator.uniform();
-        let r2 = randomGenerator.uniform();
+        let r1 = rng.uniform();
+        let r2 = rng.uniform();
         mounts.push([mesh.extent.width * (r1 - 0.5), mesh.extent.height * (r2 - 0.5)]);
     }
 
@@ -125,6 +128,8 @@ FieldModifier.prototype.peaky = function(mesh)
 
 FieldModifier.prototype.relax = function(mesh)
 {
+    const mesher = this.mesher;
+
     let length = mesh.buffer.length
     this.resetBuffer(length);
     let newh = this.buffer;

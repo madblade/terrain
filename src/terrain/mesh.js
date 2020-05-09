@@ -1,23 +1,22 @@
 
 import * as d3 from 'd3';
 // import { Delaunay } from 'd3-delaunay';
-
 import { Random } from './random';
 import { defaultExtent } from './terrain';
-
-let randomGenerator = new Random('mesher');
 
 let d3voronoi = d3.voronoi;
 
 let Mesher = function()
 {
     this.buffer = [];
+    this.randomGenerator = new Random('mesher');
 };
 
 Mesher.prototype.generatePoints = function (n, extent)
 {
     extent = extent || defaultExtent;
     let pts = [];
+    let rng = this.randomGenerator;
     // let side = Math.sqrt(n);
     // for (let x = 0; x < side; ++x) {
     //     for (let y = 0; y < side; ++y) {
@@ -33,8 +32,8 @@ Mesher.prototype.generatePoints = function (n, extent)
     // }
     for (let i = 0; i < n; i++)
     {
-        let r1 = randomGenerator.uniform();
-        let r2 = randomGenerator.uniform();
+        let r1 = rng.uniform();
+        let r2 = rng.uniform();
         pts.push([(r1 - 0.5) * extent.width, (r2 - 0.5) * extent.height]);
     }
     return pts;
@@ -181,17 +180,17 @@ Mesher.prototype.mergeSegments = function(segs)
         let changed = false;
         for (let i = 0; i < segs.length; i++) {
             if (done[i]) continue;
-            if (adj[path[0]].length === 2 && segs[i][0] === path[0]) {
+            if (adj[path[0]].length === 2 && segs[i][0] === path[0])
                 path.unshift(segs[i][1]);
-            } else if (adj[path[0]].length === 2 && segs[i][1] === path[0]) {
+            else if (adj[path[0]].length === 2 && segs[i][1] === path[0])
                 path.unshift(segs[i][0]);
-            } else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1]) {
+            else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1])
                 path.push(segs[i][1]);
-            } else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1]) {
+            else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1])
                 path.push(segs[i][0]);
-            } else {
+            else
                 continue;
-            }
+
             done[i] = true;
             changed = true;
             break;

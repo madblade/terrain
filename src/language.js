@@ -1,8 +1,12 @@
 
 import { Random } from './terrain/random';
-let randomGenerator = new Random('language');
 
-function shuffled(list)
+let LanguageGenerator = function ()
+{
+    this.randomGenerator = new Random('language');
+};
+
+LanguageGenerator.prototype.shuffled = function(list)
 {
     let newlist = [];
     for (let i = 0; i < list.length; i++) {
@@ -10,29 +14,34 @@ function shuffled(list)
     }
     for (let i = list.length - 1; i > 0; i--) {
         let tmp = newlist[i];
-        let j = randrange(i);
+        let j = this.randrange(i);
         newlist[i] = newlist[j];
         newlist[j] = tmp;
     }
     return newlist;
 }
 
-function choose(list, exponent) {
+LanguageGenerator.prototype.choose = function(list, exponent)
+{
+    let rng = this.randomGenerator;
     exponent = exponent || 1;
-    let r = randomGenerator.uniform();
+    let r = rng.uniform();
     return list[Math.floor(Math.pow(r, exponent) * list.length)];
 }
 
-function randrange(lo, hi) {
+LanguageGenerator.prototype.randrange = function(lo, hi)
+{
+    let rng = this.randomGenerator;
     if (hi === undefined) {
         hi = lo;
         lo = 0;
     }
-    let r = randomGenerator.uniform();
+    let r = rng.uniform();
     return Math.floor(r * (hi - lo)) + lo;
 }
 
-function join(list, sep) {
+LanguageGenerator.prototype.join = function(list, sep)
+{
     if (list.length === 0) return '';
     sep = sep || '';
     let s = list[0];
@@ -43,11 +52,12 @@ function join(list, sep) {
     return s;
 }
 
-function capitalize(word) {
+LanguageGenerator.prototype.capitalize = function(word)
+{
     return word[0].toUpperCase() + word.slice(1);
 }
 
-function spell(lang, syll)
+LanguageGenerator.prototype.spell = function(lang, syll)
 {
     if (lang.noortho) return syll;
     let s = '';
@@ -58,20 +68,23 @@ function spell(lang, syll)
     return s;
 }
 
-function makeSyllable(lang)
+LanguageGenerator.prototype.makeSyllable = function(lang)
 {
-    while (true) {
+    let rng = this.randomGenerator;
+
+    while (true)
+    {
         let syll = "";
         for (let i = 0; i < lang.structure.length; i++) {
             let ptype = lang.structure[i];
             if (lang.structure[i+1] === '?') {
                 i++;
-                let r = randomGenerator.uniform();
+                let r = rng.uniform();
                 if (r < 0.5) {
                     continue;
                 }
             }
-            syll += choose(lang.phonemes[ptype], lang.exponent);
+            syll += this.choose(lang.phonemes[ptype], lang.exponent);
         }
         let bad = false;
         for (let i = 0; i < lang.restricts.length; i++) {
@@ -81,23 +94,23 @@ function makeSyllable(lang)
             }
         }
         if (bad) continue;
-        return spell(lang, syll);
+        return this.spell(lang, syll);
     }
 }
 
-function getMorpheme(lang, key)
+LanguageGenerator.prototype.getMorpheme = function(lang, key)
 {
     if (lang.nomorph) {
-        return makeSyllable(lang);
+        return this.makeSyllable(lang);
     }
     key = key || '';
     let list = lang.morphemes[key] || [];
     let extras = 10;
     if (key) extras = 1;
     while (true) {
-        let n = randrange(list.length + extras);
+        let n = this.randrange(list.length + extras);
         if (list[n]) return list[n];
-        let morph = makeSyllable(lang);
+        let morph = this.makeSyllable(lang);
         let bad = false;
         for (let k in lang.morphemes) {
             if (lang.morphemes[k].includes(morph)) {
@@ -112,31 +125,31 @@ function getMorpheme(lang, key)
     }
 }
 
-function makeWord(lang, key)
+LanguageGenerator.prototype.makeWord = function(lang, key)
 {
-    let nsylls = randrange(lang.minsyll, lang.maxsyll + 1);
+    let nsylls = this.randrange(lang.minsyll, lang.maxsyll + 1);
     let w = '';
     let keys = [];
-    keys[randrange(nsylls)] = key;
+    keys[this.randrange(nsylls)] = key;
     for (let i = 0; i < nsylls; i++) {
-        w += getMorpheme(lang, keys[i]);
+        w += this.getMorpheme(lang, keys[i]);
     }
     return w;
 }
 
-function getWord(lang, key)
+LanguageGenerator.prototype.getWord = function(lang, key)
 {
     key = key || '';
     let ws = lang.words[key] || [];
     let extras = 3;
     if (key) extras = 2;
     while (true) {
-        let n = randrange(ws.length + extras);
+        let n = this.randrange(ws.length + extras);
         let w = ws[n];
         if (w) {
             return w;
         }
-        w = makeWord(lang, key);
+        w = this.makeWord(lang, key);
         let bad = false;
         for (let k in lang.words) {
             if (lang.words[k].includes(w)) {
@@ -150,27 +163,34 @@ function getWord(lang, key)
         return w;
     }
 }
-function makeName(lang, key)
+
+LanguageGenerator.prototype.makeName = function(lang, key)
 {
+    let rng = this.randomGenerator;
+
     key = key || '';
-    lang.genitive = lang.genitive || getMorpheme(lang, 'of');
-    lang.definite = lang.definite || getMorpheme(lang, 'the');
+    lang.genitive = lang.genitive || this.getMorpheme(lang, 'of');
+    lang.definite = lang.definite || this.getMorpheme(lang, 'the');
     while (true) {
         let name = null;
-        if (randomGenerator.uniform() < 0.5) {
-            name = capitalize(getWord(lang, key));
+        if (rng.uniform() < 0.5) {
+            name = this.capitalize(this.getWord(lang, key));
         } else {
-            let w1 = capitalize(getWord(lang, randomGenerator.uniform() < 0.6 ? key : ''));
-            let w2 = capitalize(getWord(lang, randomGenerator.uniform() < 0.6 ? key : ''));
+            let w1 = this.capitalize(this.getWord(
+                lang, rng.uniform() < 0.6 ? key : '')
+            );
+            let w2 = this.capitalize(this.getWord(
+                lang, rng.uniform() < 0.6 ? key : '')
+            );
             if (w1 === w2) continue;
-            if (randomGenerator.uniform() > 0.5) {
-                name = join([w1, w2], lang.joiner);
+            if (rng.uniform() > 0.5) {
+                name = this.join([w1, w2], lang.joiner);
             } else {
-                name = join([w1, lang.genitive, w2], lang.joiner);
+                name = this.join([w1, lang.genitive, w2], lang.joiner);
             }
         }
-        if (randomGenerator.uniform() < 0.1) {
-            name = join([lang.definite, name], lang.joiner);
+        if (rng.uniform() < 0.1) {
+            name = this.join([lang.definite, name], lang.joiner);
         }
 
         if ((name.length < lang.minchar) || (name.length > lang.maxchar)) continue;
@@ -188,7 +208,7 @@ function makeName(lang, key)
     }
 }
 
-function makeBasicLanguage()
+LanguageGenerator.prototype.makeBasicLanguage = function()
 {
     return {
         phonemes: {
@@ -217,33 +237,36 @@ function makeBasicLanguage()
     };
 }
 
-function makeOrthoLanguage() {
-    let lang = makeBasicLanguage();
+LanguageGenerator.prototype.makeOrthoLanguage = function()
+{
+    let lang = this.makeBasicLanguage();
     lang.noortho = false;
     return lang;
 }
 
-function makeRandomLanguage() {
-    let lang = makeBasicLanguage();
+LanguageGenerator.prototype.makeRandomLanguage = function()
+{
+    let lang = this.makeBasicLanguage();
     lang.noortho = false;
     lang.nomorph = false;
     lang.nowordpool = false;
-    lang.phonemes.C = shuffled(choose(consets, 2).C);
-    lang.phonemes.V = shuffled(choose(vowsets, 2).V);
-    lang.phonemes.L = shuffled(choose(lsets, 2).L);
-    lang.phonemes.S = shuffled(choose(ssets, 2).S);
-    lang.phonemes.F = shuffled(choose(fsets, 2).F);
-    lang.structure = choose(syllstructs);
+    lang.phonemes.C = this.shuffled(this.choose(consets, 2).C);
+    lang.phonemes.V = this.shuffled(this.choose(vowsets, 2).V);
+    lang.phonemes.L = this.shuffled(this.choose(lsets, 2).L);
+    lang.phonemes.S = this.shuffled(this.choose(ssets, 2).S);
+    lang.phonemes.F = this.shuffled(this.choose(fsets, 2).F);
+    lang.structure = this.choose(syllstructs);
     lang.restricts = ressets[2].res;
-    lang.cortho = choose(corthsets, 2).orth;
-    lang.vortho = choose(vorthsets, 2).orth;
-    lang.minsyll = randrange(1, 3);
+    lang.cortho = this.choose(corthsets, 2).orth;
+    lang.vortho = this.choose(vorthsets, 2).orth;
+    lang.minsyll = this.randrange(1, 3);
     if (lang.structure.length < 3) lang.minsyll++;
-    lang.maxsyll = randrange(lang.minsyll + 1, 7);
-    lang.joiner = choose('   -');
+    lang.maxsyll = this.randrange(lang.minsyll + 1, 7);
+    lang.joiner = this.choose('   -');
     return lang;
 }
-let defaultOrtho = {
+
+const defaultOrtho = {
     'ʃ': 'sh',
     'ʒ': 'zh',
     'ʧ': 'ch',
@@ -260,7 +283,7 @@ let defaultOrtho = {
     U: "ú"
 };
 
-let corthsets = [
+const corthsets = [
     {
         name: "Default",
         orth: {}
@@ -306,7 +329,7 @@ let corthsets = [
     }
 ];
 
-let vorthsets = [
+const vorthsets = [
     {
         name: "Ácutes",
         orth: {}
@@ -353,7 +376,7 @@ let vorthsets = [
     }
 ];
 
-let consets = [
+const consets = [
     {
         name: "Minimal",
         C: "ptkmnls"
@@ -388,7 +411,7 @@ let consets = [
     }
 ];
 
-let ssets = [
+const ssets = [
     {
         name: "Just s",
         S: "s"
@@ -403,7 +426,7 @@ let ssets = [
     }
 ];
 
-let lsets = [
+const lsets = [
     {
         name: "r l",
         L: "rl"
@@ -426,7 +449,7 @@ let lsets = [
     }
 ];
 
-let fsets = [
+const fsets = [
     {
         name: "m n",
         F: "mn"
@@ -445,7 +468,7 @@ let fsets = [
     }
 ];
 
-let vowsets = [
+const vowsets = [
     {
         name: "Standard 5-vowel",
         V: "aeiou"
@@ -476,7 +499,7 @@ let vowsets = [
     }
 ];
 
-let syllstructs = [
+const syllstructs = [
     "CVC",
     "CVV?C",
     "CVVC?", "CVC?", "CV", "VC", "CVF", "C?VC", "CVF?",
@@ -484,7 +507,7 @@ let syllstructs = [
     "C?VF", "C?VC?", "C?VF?", "C?L?VC", "VC",
     "CVL?C?", "C?VL?C", "C?VLC?"];
 
-let ressets = [
+const ressets = [
     {
         name: "None",
         res: []
@@ -500,7 +523,5 @@ let ressets = [
 ];
 
 export {
-    makeRandomLanguage,
-    makeName,
-    // makeWord
+    LanguageGenerator
 }

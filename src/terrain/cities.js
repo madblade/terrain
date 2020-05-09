@@ -1,18 +1,19 @@
 
 import PriorityQueue from 'js-priority-queue';
 
-import { FieldModifier } from './modifier';
-import { Mesher }        from './mesh';
-import { Eroder }        from './erosion';
 import { maxArg }        from './math';
 
-let fieldModifier = new FieldModifier();
-let mesher = new Mesher();
-let eroder = new Eroder();
-
-let CityPlacer = function()
+let CityPlacer = function(
+    mesher, fieldModifier, eroder
+)
 {
+    if (!mesher || !fieldModifier || !eroder) throw Error('Invalid argument');
+
     this.buffer = [];
+
+    this.mesher = mesher;
+    this.fieldModifier = fieldModifier;
+    this.eroder = eroder;
 }
 
 CityPlacer.prototype.resetBuffer = function(newBufferLength)
@@ -32,6 +33,10 @@ CityPlacer.prototype.swapBuffers = function(otherObject)
 
 CityPlacer.prototype.cityScore = function(mesh, cities)
 {
+    const eroder = this.eroder;
+    const mesher = this.mesher;
+    const fieldModifier = this.fieldModifier;
+
     let h = mesh.buffer;
 
     this.resetBuffer(h.length);
@@ -76,6 +81,9 @@ CityPlacer.prototype.placeCities = function(country)
 
 CityPlacer.prototype.getRivers = function(mesh, limit)
 {
+    const eroder = this.eroder;
+    const mesher = this.mesher;
+
     let dh = eroder.downhill(mesh);
     let flux = eroder.getFlux(mesh);
     let h = mesh.buffer;
@@ -105,6 +113,9 @@ CityPlacer.prototype.getRivers = function(mesh, limit)
 
 CityPlacer.prototype.getTerritories = function(country)
 {
+    const eroder = this.eroder;
+    const mesher = this.mesher;
+
     let mesh = country.mesh;
     let h = mesh.buffer;
     let cities = country.cities;
@@ -161,6 +172,8 @@ CityPlacer.prototype.getTerritories = function(country)
 
 CityPlacer.prototype.getBorders = function(country)
 {
+    const mesher = this.mesher;
+
     let terr = country.terr;
     let mesh = country.mesh;
     let h = mesh.buffer;
