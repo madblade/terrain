@@ -17,83 +17,151 @@ import { LanguageGenerator } from './language';
 
 let d3select = d3.select;
 
+// Generators
 let mesher = new Mesher();
 let fieldModifier = new FieldModifier(mesher);
 let eroder = new Eroder(mesher);
-
 let cityPlacer = new CityPlacer(mesher, fieldModifier, eroder);
 let terrainGenerator = new TerrainGenerator(mesher, fieldModifier, eroder);
 let languageGenerator = new LanguageGenerator();
 let nameGiver = new NameGiver(languageGenerator);
 
+// Drawing
 let svgDrawer = new SVGDrawer(mesher, eroder, terrainGenerator, cityPlacer, nameGiver);
 
-function addSVG(div) {
-    return div.insert("svg", ":first-child")
-        .attr("height", 400)
-        .attr("width", 400)
-        .attr("viewBox", "-500 -500 1000 1000");
-}
+// Mesh
 let meshDiv = d3select("div#mesh");
-let meshSVG = addSVG(meshDiv);
-
+let meshSVG = svgDrawer.addSVG(meshDiv);
 let meshPts = null;
 let meshVxs = null;
 let meshDual = false;
 
-function meshDraw()
+// Prim
+let primDiv = d3select("div#prim");
+let primSVG = svgDrawer.addSVG(primDiv);
+let mainSize = 2048;
+let primH = mesher.generateGoodMesh(mainSize);
+fieldModifier.resetField(primH);
+function primDraw()
 {
-    if (meshDual && !meshVxs)
-        meshVxs = mesher.makeMesh(meshPts).vxs;
-
-    svgDrawer.visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
+    svgDrawer.visualizeVoronoi(primSVG, primH, primH.buffer, -1, 1);
+    svgDrawer.drawPaths(primSVG, 'coast', mesher.contour(primH, 0));
 }
 
+// Erode
+let erodeDiv = d3select("div#erode");
+let erodeSVG = svgDrawer.addSVG(erodeDiv);
+let erodeH = primH;
+let erodeViewErosion = false;
+function erodeDraw()
+{
+    if (erodeViewErosion) {
+        let erosionRate = eroder.erosionRate(erodeH);
+        svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erosionRate);
+    } else svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erodeH.buffer, 0, 1);
+    svgDrawer.drawPaths(erodeSVG, "coast", mesher.contour(erodeH, 0));
+}
+
+// Phys
+let physDiv = d3select("div#phys");
+let physSVG = svgDrawer.addSVG(physDiv);
+let physH = erodeH;
+let physViewCoast = false;
+let physViewRivers = false;
+let physViewSlope = false;
+let physViewHeight = true;
+function physDraw()
+{
+    if (physViewHeight) svgDrawer.visualizeVoronoi(physSVG, physH, physH.buffer, 0);
+    else physSVG.selectAll("path.field").remove();
+
+    if (physViewCoast) svgDrawer.drawPaths(physSVG, "coast", mesher.contour(physH, 0));
+    else svgDrawer.drawPaths(physSVG, "coast", []);
+
+    if (physViewRivers) svgDrawer.drawPaths(physSVG, "river", cityPlacer.getRivers(physH, 0.01));
+    else svgDrawer.drawPaths(physSVG, "river", []);
+
+    if (physViewSlope) svgDrawer.visualizeSlopes(physSVG, physH, physH.buffer);
+    else {
+        let zero = [];
+        for (let i = 0; i < physH.buffer.length; ++i) zero[i] = 0;
+        svgDrawer.visualizeSlopes(physSVG, physH, zero);
+    }
+}
+
+// Country
+let cityDiv = d3select("div#city");
+let citySVG = svgDrawer.addSVG(cityDiv);
+let cityViewScore = true;
+function newCountry(h)
+{
+    h = h || terrainGenerator.generateCoast({ npts: mainSize, extent: defaultExtent });
+    return { params: defaultParams, mesh: h, cities: [] };
+}
+let country = newCountry(physH);
+function cityDraw()
+{
+    country.terr = cityPlacer.getTerritories(country);
+    if (cityViewScore) {
+        let score = cityPlacer.cityScore(country.mesh, country.cities);
+        svgDrawer.visualizeVoronoi(citySVG, country.mesh, score, max(score) - 0.5);
+    } else svgDrawer.visualizeVoronoi(citySVG, country.mesh, country.terr);
+    svgDrawer.drawPaths(citySVG, 'coast', mesher.contour(country.mesh, 0));
+    svgDrawer.drawPaths(citySVG, 'river', cityPlacer.getRivers(country.mesh, 0.01));
+    svgDrawer.drawPaths(citySVG, 'border', cityPlacer.getBorders(country));
+    svgDrawer.visualizeSlopes(citySVG, country.mesh, country.mesh.buffer);
+    svgDrawer.visualizeCities(citySVG, country);
+}
+
+// Final
+let finalDiv = d3select("div#final");
+let finalSVG = svgDrawer.addSVG(finalDiv);
+function doMap(svg, params)
+{
+    let country = { params: params };
+    let width = svg.attr('width');
+    svg.attr('height', width * params.extent.height / params.extent.width);
+    svg.attr('viewBox',
+        -1000 * params.extent.width / 2 + ' ' +
+        -1000 * params.extent.height / 2 + ' ' +
+        1000 * params.extent.width + ' ' +
+        1000 * params.extent.height
+    );
+    svg.selectAll().remove();
+    country.mesh = terrainGenerator.generateCoast(params);
+    cityPlacer.placeCities(country);
+    svgDrawer.drawMap(svg, country);
+}
+
+// Mesh
 meshDiv.append("button")
     .text("Generate random points")
     .on("click", () => {
         meshDual = false;
-        meshVxs = null;
         meshPts = mesher.generatePoints(256);
-        meshDraw();
+        if (meshDual) meshVxs = mesher.makeMesh(meshPts).vxs;
+        svgDrawer.visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
     });
 
 meshDiv.append("button")
     .text("Improve points")
     .on("click", () => {
         meshPts = mesher.improvePoints(meshPts);
-        meshVxs = null;
-        meshDraw();
+        if (meshDual) meshVxs = mesher.makeMesh(meshPts).vxs;
+        svgDrawer.visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
     });
 
 let vorBut = meshDiv.append("button")
     .text("Show Voronoi corners")
     .on("click", () => {
         meshDual = !meshDual;
-        if (meshDual) {
-            vorBut.text("Show original points");
-        } else {
-            vorBut.text("Show Voronoi corners");
-        }
-        meshDraw();
+        if (meshDual) vorBut.text("Show original points");
+        else vorBut.text("Show Voronoi corners");
+        if (meshDual && !meshVxs) meshVxs = mesher.makeMesh(meshPts).vxs;
+        svgDrawer.visualizePoints(meshSVG, meshDual ? meshVxs : meshPts);
     });
 
-let primDiv = d3select("div#prim");
-let primSVG = addSVG(primDiv);
-
-let mainSize = 2048;
-let primH = mesher.generateGoodMesh(mainSize);
-fieldModifier.resetField(primH);
-
-function primDraw()
-{
-    svgDrawer.visualizeVoronoi(primSVG, primH, primH.buffer, -1, 1);
-    let con = mesher.contour(primH, 0);
-    svgDrawer.drawPaths(primSVG, 'coast', con);
-}
-
-primDraw();
-
+// Prim
 primDiv.append("button")
     .text("Reset to flat")
     .on("click", () => {
@@ -161,23 +229,9 @@ primDiv.append("button")
         primDraw();
     });
 
-let erodeDiv = d3select("div#erode");
-let erodeSVG = addSVG(erodeDiv);
+primDraw();
 
-let erodeH = primH;
-let erodeViewErosion = false;
-
-function erodeDraw()
-{
-    if (erodeViewErosion) {
-        let erosionRate = eroder.erosionRate(erodeH);
-        svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erosionRate);
-    } else {
-        svgDrawer.visualizeVoronoi(erodeSVG, erodeH, erodeH.buffer, 0, 1);
-    }
-    svgDrawer.drawPaths(erodeSVG, "coast", mesher.contour(erodeH, 0));
-}
-
+// Erode
 erodeDiv.append("button")
     .text("Generate random heightmap")
     .on("click", () => {
@@ -225,41 +279,7 @@ let erodeBut = erodeDiv.append("button")
         erodeDraw();
     });
 
-let physDiv = d3select("div#phys");
-let physSVG = addSVG(physDiv);
-let physH = erodeH;
-
-let physViewCoast = false;
-let physViewRivers = false;
-let physViewSlope = false;
-let physViewHeight = true;
-
-function physDraw()
-{
-    if (physViewHeight)
-        svgDrawer.visualizeVoronoi(physSVG, physH, physH.buffer, 0);
-    else
-        physSVG.selectAll("path.field").remove();
-
-    if (physViewCoast)
-        svgDrawer.drawPaths(physSVG, "coast", mesher.contour(physH, 0));
-    else
-        svgDrawer.drawPaths(physSVG, "coast", []);
-
-    if (physViewRivers) {
-        svgDrawer.drawPaths(physSVG, "river", cityPlacer.getRivers(physH, 0.01));
-    } else
-        svgDrawer.drawPaths(physSVG, "river", []);
-
-    if (physViewSlope)
-        svgDrawer.visualizeSlopes(physSVG, physH, physH.buffer);
-    else {
-        let zero = [];
-        for (let i = 0; i < physH.buffer.length; ++i) zero[i] = 0;
-        svgDrawer.visualizeSlopes(physSVG, physH, zero);
-    }
-}
-
+// Phys
 physDiv.append("button")
     .text("Generate random heightmap")
     .on("click", () => {
@@ -308,41 +328,7 @@ let physHeightBut = physDiv.append("button")
         physDraw();
     });
 
-let cityDiv = d3select("div#city");
-let citySVG = addSVG(cityDiv);
-
-let cityViewScore = true;
-
-function newCountry(h)
-{
-    h = h || terrainGenerator.generateCoast(
-        { npts: mainSize, extent: defaultExtent }
-        );
-
-    return {
-        params: defaultParams,
-        mesh: h,
-        cities: []
-    };
-}
-
-let country = newCountry(physH);
-function cityDraw()
-{
-    country.terr = cityPlacer.getTerritories(country);
-    if (cityViewScore) {
-        let score = cityPlacer.cityScore(country.mesh, country.cities);
-        svgDrawer.visualizeVoronoi(citySVG, country.mesh, score, max(score) - 0.5);
-    } else {
-        svgDrawer.visualizeVoronoi(citySVG, country.mesh, country.terr);
-    }
-    svgDrawer.drawPaths(citySVG, 'coast', mesher.contour(country.mesh, 0));
-    svgDrawer.drawPaths(citySVG, 'river', cityPlacer.getRivers(country.mesh, 0.01));
-    svgDrawer.drawPaths(citySVG, 'border', cityPlacer.getBorders(country));
-    svgDrawer.visualizeSlopes(citySVG, country.mesh, country.mesh.buffer);
-    svgDrawer.visualizeCities(citySVG, country);
-}
-
+// Country
 cityDiv.append("button")
     .text("Generate random heightmap")
     .on("click", () => {
@@ -372,8 +358,7 @@ let cityViewBut = cityDiv.append("button")
         cityDraw();
     });
 
-let finalDiv = d3select("div#final");
-let finalSVG = addSVG(finalDiv);
+// Final
 finalDiv.append("button")
     .text("Copy map from above")
     .on("click", () => {
@@ -385,21 +370,3 @@ finalDiv.append("button")
     .on("click", () => {
         doMap(finalSVG, defaultParams);
     });
-
-function doMap(svg, params)
-{
-    let country = {
-        params: params
-    };
-    let width = svg.attr('width');
-    svg.attr('height', width * params.extent.height / params.extent.width);
-    svg.attr('viewBox', -1000 * params.extent.width / 2 + ' ' +
-        -1000 * params.extent.height / 2 + ' ' +
-        1000 * params.extent.width + ' ' +
-        1000 * params.extent.height);
-
-    svg.selectAll().remove();
-    country.mesh = terrainGenerator.generateCoast(params);
-    cityPlacer.placeCities(country);
-    svgDrawer.drawMap(svg, country);
-}

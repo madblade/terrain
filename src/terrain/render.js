@@ -182,6 +182,14 @@ SVGDrawer.prototype.drawMap = function(svg, country)
     nameGiver.drawLabels(svg, country);
 }
 
+SVGDrawer.prototype.addSVG = function(div)
+{
+    return div.insert("svg", ":first-child")
+        .attr("height", 400)
+        .attr("width", 400)
+        .attr("viewBox", "-500 -500 1000 1000");
+}
+
 export {
     SVGDrawer
 }
