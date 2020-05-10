@@ -367,6 +367,8 @@ finalDiv.append("button")
         doMap(finalSVG, defaultParams);
     });
 
+// doMap(finalSVG, defaultParams);
+
 }
 
 export { init };

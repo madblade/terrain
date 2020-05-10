@@ -30,8 +30,14 @@ Rasterizer.prototype.computeTriMesh = function(
                 z.set(index, v);
                 zPass.set(index, 1);
             } else {
-                z.set(index, z.get(index) + v);
-                zPass.set(index, zPass.get(index) + 1);
+                let ov = z.get(index);
+                if (Math.sign(v) !== Math.sign(ov)) {
+                    z.set(index, Math.min(ov, v));
+                    zPass.set(index, 1);
+                } else {
+                    z.set(index, ov + v);
+                    zPass.set(index, zPass.get(index) + 1);
+                }
             }
             // z[index] += v;
             // zPass[index]++;
@@ -51,6 +57,7 @@ Rasterizer.prototype.computeTriMesh = function(
         let t = tris[i];
         if (t.length !== 3) continue;
         let newTri = [];
+        let v = values[i];
         for (let j = 0; j < 3; ++j)
         {
             let p = t[j];

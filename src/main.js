@@ -1,9 +1,12 @@
 import { init }              from './terrain/home/home';
 import {
-    AmbientLight,
-    BoxGeometry, BufferAttribute, BufferGeometry, DirectionalLight, DoubleSide,
-    Mesh, MeshBasicMaterial, MeshPhongMaterial,
-    PerspectiveCamera, Scene,
+    BufferAttribute, BufferGeometry,
+    DirectionalLight, DoubleSide,
+    Line, LineBasicMaterial,
+    Mesh,
+    MeshBasicMaterial, MeshPhongMaterial, OrthographicCamera,
+    PerspectiveCamera, PlaneBufferGeometry,
+    Scene, Vector3,
     WebGLRenderer
 } from 'three';
 import { Mesher }                          from './terrain/mesh';
@@ -14,6 +17,7 @@ import { defaultParams, TerrainGenerator } from './terrain/terrain';
 import { LanguageGenerator }               from './language';
 import { NameGiver }                       from './terrain/names';
 import { Rasterizer }                      from './terrain/pixel';
+import { OrbitControls }                   from 'three/examples/jsm/controls/OrbitControls';
 
 
 let mesher = new Mesher();
@@ -37,6 +41,12 @@ init(
 let country = { params: defaultParams };
 country.mesh = terrainGenerator.generateCoast(defaultParams);
 cityPlacer.placeCities(country);
+country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
+country.coasts = mesher.contour(country.mesh, 0);
+country.terr = cityPlacer.getTerritories(country);
+country.borders = cityPlacer.getBorders(country);
+console.log(country.rivers);
+
 
 let rasterizer = new Rasterizer();
 let triMesh = rasterizer.computeTriMesh(country.mesh);
@@ -51,6 +61,24 @@ let renderer = new WebGLRenderer({antialias: true});
 renderer.setSize(w, h);
 container.appendChild(renderer.domElement);
 
+// Rivers
+let rivers = [...country.coasts, ...country.rivers];
+for (let i = 0; i < rivers.length; ++i)
+{
+    const r = rivers[i];
+    let m = new LineBasicMaterial({color: 0xff0000});
+    let pts = [];
+    for (let j = 0; j < r.length; ++j)
+    {
+        let p = r[j];
+        pts.push(new Vector3(p[0], p[1], 0.1));
+    }
+    let g = new BufferGeometry().setFromPoints(pts);
+    let l = new Line(g, m);
+    scene.add(l);
+}
+
+// HeightMap
 let geometry = new BufferGeometry();
 let positions = new Float32Array(triMesh.length * 3 * 3);
 for (let i = 0; i < triMesh.length; ++i)
@@ -71,20 +99,30 @@ for (let i = 0; i < triMesh.length; ++i)
 let positionAttribute = new BufferAttribute(positions, 3);
 geometry.setAttribute('position', positionAttribute);
 geometry.computeVertexNormals();
-
 let material = new MeshPhongMaterial(
     { color: 0x00ff00, side: DoubleSide }
     );
 let cube = new Mesh(geometry, material);
-cube.scale.multiplyScalar(4.0);
-cube.scale.z /= 4;
+// cube.scale.multiplyScalar(4.0);
+// cube.scale.z /= 4;
 scene.add(cube);
-scene.add(new DirectionalLight(0xffffff, 10));
+
+let p = new Mesh(
+    new PlaneBufferGeometry(10, 10),
+    new MeshBasicMaterial({ color: 0x0000ff})
+);
+p.position.set(0, 0, 0);
+scene.add(p);
+
+let li = new DirectionalLight(0xffffff, 2);
+li.position.set(1, -1, 2);
+scene.add(li);
 camera.position.z = 5;
+new OrbitControls(camera, container);
 let animate = function () {
     requestAnimationFrame(animate);
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
+    // cube.rotation.x += 0.01;
+    // cube.rotation.y += 0.01;
     renderer.render(scene, camera);
 };
 animate();
