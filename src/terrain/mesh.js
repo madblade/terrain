@@ -78,7 +78,7 @@ Mesher.prototype.voronoi = function(pts, extent)
     let h = extent.height / 2;
     let layout = d3voronoi().extent([[-w, -h], [w, h]])(pts);
 
-    console.log(layout);
+    // console.log(layout);
     return layout;
 }
 

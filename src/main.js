@@ -40,7 +40,6 @@ cityPlacer.placeCities(country);
 
 let rasterizer = new Rasterizer();
 let triMesh = rasterizer.computeTriMesh(country.mesh);
-console.log(triMesh);
 
 let container = document.getElementById('gl');
 const dpr = window.devicePixelRatio
@@ -77,7 +76,8 @@ let material = new MeshPhongMaterial(
     { color: 0x00ff00, side: DoubleSide }
     );
 let cube = new Mesh(geometry, material);
-cube.scale.multiplyScalar(2.0);
+cube.scale.multiplyScalar(4.0);
+cube.scale.z /= 4;
 scene.add(cube);
 scene.add(new DirectionalLight(0xffffff, 10));
 camera.position.z = 5;
