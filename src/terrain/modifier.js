@@ -1,6 +1,6 @@
 
 import { Random }                   from './random';
-import { max, mean, min, quantile } from './math';
+import { max, mean, min, quantile2 } from './math';
 
 let FieldModifier = function(
     mesher
@@ -150,7 +150,7 @@ FieldModifier.prototype.relax = function(mesh)
 
 FieldModifier.prototype.setSeaLevel = function(mesh, q)
 {
-    let delta = quantile(mesh, q);
+    let delta = quantile2(mesh, q);
     this.addScalar(mesh, -delta);
 }
 

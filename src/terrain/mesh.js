@@ -1,9 +1,10 @@
 
-import * as d3 from 'd3';
-import { Random } from './random';
+// import * as d3           from 'd3';
+import { Random }        from './random';
 import { defaultExtent } from './terrain';
+import { voronoi }       from './voronoi';
 
-let d3voronoi = d3.voronoi;
+let d3voronoi = voronoi;
 
 let Mesher = function()
 {
@@ -150,7 +151,6 @@ Mesher.prototype.makeMesh = function(pts, extent)
 
             let midX = (ea[0] + eb[0]) / 2;
             let midY = (ea[1] + eb[1]) / 2;
-            let ptsLength = pts.length;
             let newP1; let newP2;
             let newTri1; let newTri2;
             if (Math.abs(midX) > Math.abs(midY)) { // centered in 0

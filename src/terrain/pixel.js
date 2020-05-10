@@ -5,12 +5,16 @@ let Rasterizer = function()
 };
 
 Rasterizer.prototype.computeTriMesh = function(
-    pts, tris, values
+    mesh
 )
 {
+    let pts = mesh.pts;
+    let tris = mesh.tris;
+    let values = mesh.buffer;
+
     let triMesh = [];
-    let z = new Float64Array(pts.length);
-    let zPass = new Uint8Array(pts.length);
+    let z = new Map();
+    let zPass = new Map();
 
     // Compute point heights
     for (let i = 0; i < tris.length; ++i)
@@ -20,17 +24,26 @@ Rasterizer.prototype.computeTriMesh = function(
         if (t.length !== 3) continue;
         for (let j = 0; j < 3; ++j) {
             let p = t[j];
-            let index = p.index;
-            z[index] += v;
-            zPass[index]++;
+            let index = `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+            if (!z.has(index))
+            {
+                z.set(index, v);
+                zPass.set(index, 1);
+            } else {
+                z.set(index, z.get(index) + v);
+                zPass.set(index, zPass.get(index) + 1);
+            }
+            // z[index] += v;
+            // zPass[index]++;
         }
     }
-    for (let i = 0; i < z.length; ++i)
-    {
-        let count = zPass[i];
-        if (count < 1) continue;
-        z[i] /= count;
-    }
+
+    // for (let i = 0; i < z.length; ++i)
+    // {
+    //     let count = zPass[i];
+    //     if (count < 1) continue;
+    //     z[i] /= count;
+    // }
 
     // Compute 3D tris
     for (let i = 0; i < tris.length; ++i)
@@ -38,9 +51,12 @@ Rasterizer.prototype.computeTriMesh = function(
         let t = tris[i];
         if (t.length !== 3) continue;
         let newTri = [];
-        for (let j = 0; j < 3; ++j) {
+        for (let j = 0; j < 3; ++j)
+        {
             let p = t[j];
-            newTri.push([p[0], p[1], z[p.index]]);
+            let index = `${p[0].toFixed(4)},${p[1].toFixed(4)}`;
+            let height = z.get(index) / zPass.get(index);
+            newTri.push([p[0], p[1], height]);
         }
         triMesh.push(newTri);
     }
@@ -179,3 +195,5 @@ Rasterizer.prototype.drawTriMesh = function (cMesh)
         );
     }
 }
+
+export { Rasterizer };

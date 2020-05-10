@@ -1,11 +1,11 @@
 
 // Math util functions
 
-import * as d3 from 'd3';
+import quantile from './d3math/quantile';
 
-let d3quantile = d3.quantile;
+let d3quantile = quantile;
 
-function quantile(mesh, q)
+function quantile2(mesh, q)
 {
     let h = mesh.buffer;
     let sortedh = [];
@@ -89,5 +89,5 @@ function minArg(array, compare)
 export {
     min, max, maxArg, minArg,
     mean,
-    quantile
+    quantile2
 }
