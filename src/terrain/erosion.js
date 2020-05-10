@@ -60,14 +60,12 @@ Eroder.prototype.swapBuffers = function(otherObject)
 
 Eroder.prototype.downhill = function(mesh)
 {
-    // if (mesh.downhill) return mesh.downhill;
     let nbTris = mesh.buffer.length;
     this.resetDownhillBuffer(nbTris);
     let downs = this.downhillBuffer;
     for (let i = 0; i < nbTris; i++) {
         downs[i] = this.downfrom(mesh, i);
     }
-    // mesh.downhill = downs;
     return downs;
 };
 

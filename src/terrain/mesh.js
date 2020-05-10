@@ -1,6 +1,5 @@
 
 import * as d3 from 'd3';
-// import { Delaunay } from 'd3-delaunay';
 import { Random } from './random';
 import { defaultExtent } from './terrain';
 
@@ -46,7 +45,7 @@ Mesher.prototype.centroid = function(pts) {
         x += pts[i][0];
         y += pts[i][1];
     }
-    return [x/pts.length, y/pts.length];
+    return [x / pts.length, y / pts.length];
 }
 
 Mesher.prototype.improvePoints = function(pts, n, extent)
@@ -74,15 +73,11 @@ Mesher.prototype.generateGoodPoints = function(n, extent)
 Mesher.prototype.voronoi = function(pts, extent)
 {
     extent = extent || defaultExtent;
-    let w = extent.width/2;
-    let h = extent.height/2;
+    let w = extent.width / 2;
+    let h = extent.height / 2;
     let layout = d3voronoi().extent([[-w, -h], [w, h]])(pts);
 
     console.log(layout);
-    // const delaunay = Delaunay.from(pts);
-    // const dln = delaunay.voronoi([-w, -h, w, h]);
-    // console.log(dln);
-
     return layout;
 }
 
@@ -90,48 +85,135 @@ Mesher.prototype.makeMesh = function(pts, extent)
 {
     extent = extent || defaultExtent;
     let vor = this.voronoi(pts, extent);
+
     let vxs = [];
-    let vxids = {};
+    let vxids = new Map();
     let adj = [];
     let edges = [];
     let tris = [];
-    for (let i = 0; i < vor.edges.length; i++)
+    let voronoiEdges = vor.edges;
+
+    for (let i = 0; i < voronoiEdges.length; i++)
     {
-        let e = vor.edges[i];
+        let e = voronoiEdges[i];
         if (e === undefined) continue;
-        let e0 = vxids[e[0]];
-        let e1 = vxids[e[1]];
+        let e0 = vxids.get(e[0]);
+        let e1 = vxids.get(e[1]);
         if (e0 === undefined) {
             e0 = vxs.length;
-            vxids[e[0]] = e0;
+            vxids.set(e[0], e0);
             vxs.push(e[0]);
         }
         if (e1 === undefined) {
             e1 = vxs.length;
-            vxids[e[1]] = e1;
+            vxids.set(e[1], e1);
             vxs.push(e[1]);
         }
+
         adj[e0] = adj[e0] || [];
         adj[e0].push(e1);
         adj[e1] = adj[e1] || [];
         adj[e1].push(e0);
-        edges.push([e0, e1, e.left, e.right]);
+
+        let left = e.left;
+        let right = e.right;
+
+        edges.push([e0, e1, left, right]);
+
         tris[e0] = tris[e0] || [];
-        if (!tris[e0].includes(e.left)) tris[e0].push(e.left);
-        if (e.right && !tris[e0].includes(e.right)) tris[e0].push(e.right);
+        if (!tris[e0].includes(left)) tris[e0].push(left);
+        if (right && !tris[e0].includes(right)) tris[e0].push(right);
+
         tris[e1] = tris[e1] || [];
-        if (!tris[e1].includes(e.left)) tris[e1].push(e.left);
-        if (e.right && !tris[e1].includes(e.right)) tris[e1].push(e.right);
+        if (!tris[e1].includes(left)) tris[e1].push(left);
+        if (right && !tris[e1].includes(right)) tris[e1].push(right);
     }
 
+    // Border surgery
+    let w = extent.width / 2;
+    let h = extent.height / 2;
+    let topRight = [-w, -h];
+    let topLeft = [w, -h];
+    let bottomRight = [-w, h];
+    let bottomLeft = [w, h];
+    for (let i = 0; i < tris.length; ++i)
+    {
+        let ns = adj[i];
+        if (!ns.length || ns.length === 3) continue;
+        let t = tris[i];
+        if (ns.length === 2)
+        {
+            if (t.length !== 2) continue;
+            let e1 = t[0]; let e2 = t[1]; let e3 = t[2];
+            let ea = e1 !== undefined ? e1 : e2;
+            let eb = e1 !== undefined && e2 !== undefined ? e2 : e3;
+
+            let midX = (ea[0] + eb[0]) / 2;
+            let midY = (ea[1] + eb[1]) / 2;
+            let ptsLength = pts.length;
+            let newP1; let newP2;
+            let newTri1; let newTri2;
+            if (Math.abs(midX) > Math.abs(midY)) { // centered in 0
+                if (midX > 0) {
+                    newP1 = [w, ea[1]]; newP2 = [w, eb[1]];
+                    if (Math.max(ea[1], eb[1]) > topRight[1]) topRight[1] = Math.max(ea[1], eb[1]);
+                    if (Math.min(ea[1], eb[1]) < bottomRight[1]) bottomRight[1] = Math.min(ea[1], eb[1]);
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                } else {
+                    newP1 = [-w, ea[1]]; newP2 = [-w, eb[1]];
+                    if (Math.max(ea[1], eb[1]) > topLeft[1]) topLeft[1] = Math.max(ea[1], eb[1]);
+                    if (Math.min(ea[1], eb[1]) < bottomLeft[1]) bottomLeft[1] = Math.min(ea[1], eb[1]);
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                }
+            } else {
+                if (midY > 0) {
+                    newP1 = [ea[0], h]; newP2 = [eb[0], h];
+                    if (Math.max(ea[0], eb[0]) > topRight[0]) topRight[0] = Math.max(ea[0], eb[0]);
+                    if (Math.min(ea[0], eb[0]) < topLeft[0]) topLeft[0] = Math.min(ea[0], eb[0]);
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                } else {
+                    newP1 = [ea[0], -h]; newP2 = [eb[0], -h];
+                    if (Math.max(ea[0], eb[0]) > bottomRight[0]) bottomRight[0] = Math.max(ea[0], eb[0]);
+                    if (Math.min(ea[0], eb[0]) < bottomLeft[0]) bottomLeft[0] = Math.min(ea[0], eb[0]);
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                }
+            }
+
+            vxs.push(newP1); tris.push(newTri1); adj.push([]);
+            vxs.push(newP2); tris.push(newTri2); adj.push([]);
+        }
+    }
+
+    // Corner surgery
+    function makeTris(a, b, c, d)
+    {
+        let newTri1 = [a, b, c]; let newTri2 = [b, c, d];
+        vxs.push(a); tris.push(newTri1); adj.push([]);
+        vxs.push(d); tris.push(newTri2); adj.push([]);
+    }
+    let p1 = [topRight[0], topRight[1]]; let p2 = [topRight[0], h]; let p3 = [w, topRight[1]]; let p4 = [w, h];
+    makeTris(p1, p2, p3, p4);
+    p1 = [bottomRight[0], bottomRight[1]]; p2 = [bottomRight[0], -h]; p3 = [w, bottomRight[1]]; p4 = [w, -h];
+    makeTris(p1, p2, p3, p4);
+    p1 = [bottomLeft[0], bottomLeft[1]]; p2 = [bottomLeft[0], -h]; p3 = [-w, bottomLeft[1]]; p4 = [-w, -h];
+    makeTris(p1, p2, p3, p4);
+    p1 = [topLeft[0], topLeft[1]]; p2 = [topLeft[0], h]; p3 = [-w, topLeft[1]]; p4 = [-w, h];
+    makeTris(p1, p2, p3, p4);
+
     let mesh = {
-        pts: pts,
         vor: vor,
+
+        pts: pts,
+        edges: edges,
+        extent: extent,
+
         vxs: vxs,
         adj: adj,
         tris: tris,
-        edges: edges,
-        extent: extent
     }
 
     let vl = vxs.length;
@@ -139,6 +221,8 @@ Mesher.prototype.makeMesh = function(pts, extent)
         console.error('Incompatible mesh.');
 
     mesh.buffer = new Array(vl);
+
+    console.log(mesh);
 
     return mesh;
 }

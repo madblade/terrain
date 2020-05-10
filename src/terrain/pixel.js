@@ -16,12 +16,12 @@ Rasterizer.prototype.computeTriMesh = function(
     for (let i = 0; i < tris.length; ++i)
     {
         let t = tris[i];
+        let v = values[i];
         if (t.length !== 3) continue;
         for (let j = 0; j < 3; ++j) {
             let p = t[j];
             let index = p.index;
-            let value = values[index];
-            z[index] += value;
+            z[index] += v;
             zPass[index]++;
         }
     }

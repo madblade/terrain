@@ -176,15 +176,17 @@ CityPlacer.prototype.getBorders = function(country)
 
     let terr = country.terr;
     let mesh = country.mesh;
+    let meshEdges = mesh.edges;
     let h = mesh.buffer;
     let edges = [];
-    for (let i = 0; i < mesh.edges.length; i++)
+    for (let i = 0; i < meshEdges.length; i++)
     {
-        let e = mesh.edges[i];
+        let e = meshEdges[i];
         if (e[3] === undefined) continue;
         if (mesher.isnearedge(mesh, e[0]) || mesher.isnearedge(mesh, e[1])) continue;
         if (h[e[0]] < 0 || h[e[1]] < 0) continue;
-        if (terr[e[0]] !== terr[e[1]]) {
+        if (terr[e[0]] !== terr[e[1]])
+        {
             edges.push([e[2], e[3]]);
         }
     }
