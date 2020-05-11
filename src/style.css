@@ -1,7 +1,12 @@
 
+#gen-image {
+    z-index: 4;
+}
+
 #gl {
     width: 500px;
     height: 250px;
+    z-index: 3;
 }
 
 body {
