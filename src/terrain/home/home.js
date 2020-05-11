@@ -34,7 +34,7 @@ let meshDual = false;
 // Prim
 let primDiv = d3select("div#prim");
 let primSVG = svgDrawer.addSVG(primDiv);
-let mainSize = 2048;
+let mainSize = 16384;
 let primH = mesher.generateGoodMesh(mainSize);
 fieldModifier.resetField(primH);
 

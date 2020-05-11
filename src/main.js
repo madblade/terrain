@@ -10,7 +10,7 @@ import {
     PerspectiveCamera, PlaneBufferGeometry,
     Scene, Vector3,
     WebGLRenderer
-} from 'three';
+}                                          from 'three';
 import { Mesher }                          from './terrain/mesh';
 import { FieldModifier }                   from './terrain/modifier';
 import { Eroder }                          from './terrain/erosion';
@@ -20,6 +20,8 @@ import { LanguageGenerator }               from './language';
 import { NameGiver }                       from './terrain/names';
 import { Rasterizer }                      from './terrain/pixel';
 import { OrbitControls }                   from 'three/examples/jsm/controls/OrbitControls';
+import * as d3                             from 'd3';
+import { SVGDrawer }                       from './terrain/render';
 
 
 let mesher = new Mesher();
@@ -30,6 +32,10 @@ let terrainGenerator = new TerrainGenerator(mesher, fieldModifier, eroder);
 let languageGenerator = new LanguageGenerator();
 let nameGiver = new NameGiver(languageGenerator);
 
+
+let d3select = d3.select;
+let svgDrawer = new SVGDrawer(mesher, eroder, terrainGenerator, cityPlacer, nameGiver);
+
 function init3D()
 {
     let country = {params: defaultParams};
@@ -39,14 +45,16 @@ function init3D()
     country.coasts = mesher.contour(country.mesh, 0);
     country.terr = cityPlacer.getTerritories(country);
     country.borders = cityPlacer.getBorders(country);
-    console.log(country.rivers);
+    // console.log(country.rivers);
 
     let rasterizer = new Rasterizer();
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
-    console.log('Rasterizing.');
     rasterizer.heightPass(triMesh);
-    console.log(rasterizer.heightBuffer);
+
+    let finalDiv = d3select("div#fin");
+    let finalSVG = svgDrawer.addSVG(finalDiv);
+    svgDrawer.drawMap(finalSVG, country);
 
     const width = rasterizer.dimension;
     const height = rasterizer.dimension;
@@ -56,12 +64,11 @@ function init3D()
     {
         let s = i * width + j;
         let stride = s * 4;
-        buffer[stride    ] = rb[s] * 2 >> 0;
-        buffer[stride + 1] = rb[s] * 2 >> 0;
-        buffer[stride + 2] = rb[s] * 2 >> 0;
+        buffer[stride    ] = rb[s] >> 0;
+        buffer[stride + 1] = rb[s] >> 0;
+        buffer[stride + 2] = rb[s] >> 0;
         buffer[stride + 3] = 255;
     }
-    console.log(buffer);
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     canvas.width = width;
@@ -117,15 +124,20 @@ function init3D()
     let positionAttribute = new BufferAttribute(positions, 3);
     geometry.setAttribute('position', positionAttribute);
     geometry.computeVertexNormals();
-    let material = new MeshPhongMaterial(
-        {color: 0x00ff00, side: DoubleSide}
+    let material = new MeshBasicMaterial(
+        {
+            color: 0x00ff00, side: DoubleSide,
+            wireframe: true
+        }
     );
     let cube = new Mesh(geometry, material);
     scene.add(cube);
 
     let p = new Mesh(
         new PlaneBufferGeometry(10, 10),
-        new MeshBasicMaterial({color: 0x0000ff})
+        new MeshBasicMaterial({
+            color: 0x0000ff, transparent: true, opacity: 0.5
+        })
     );
     p.position.set(0, 0, 0);
     scene.add(p);

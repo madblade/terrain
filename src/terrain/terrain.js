@@ -78,7 +78,7 @@ let defaultExtent = {
 
 let defaultParams = {
     extent: defaultExtent,
-    npts: 16384,
+    npts: 256,
     ncities: 15,
     nterrs: 5,
     fontsizes: {
