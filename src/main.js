@@ -45,16 +45,15 @@ function init3D()
     country.coasts = mesher.contour(country.mesh, 0);
     country.terr = cityPlacer.getTerritories(country);
     country.borders = cityPlacer.getBorders(country);
-    // console.log(country.rivers);
 
     let rasterizer = new Rasterizer();
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
     rasterizer.heightPass(triMesh);
 
-    let finalDiv = d3select("div#fin");
-    let finalSVG = svgDrawer.addSVG(finalDiv);
-    svgDrawer.drawMap(finalSVG, country);
+    // let finalDiv = d3select("div#fin");
+    // let finalSVG = svgDrawer.addSVG(finalDiv);
+    // svgDrawer.drawMap(finalSVG, country);
 
     const width = rasterizer.dimension;
     const height = rasterizer.dimension;
@@ -64,9 +63,10 @@ function init3D()
     {
         let s = i * width + j;
         let stride = s * 4;
-        buffer[stride    ] = rb[s] >> 0;
-        buffer[stride + 1] = rb[s] >> 0;
-        buffer[stride + 2] = rb[s] >> 0;
+        let si = (width - i - 1) * width + j;
+        buffer[stride    ] = rb[si] >> 0;
+        buffer[stride + 1] = rb[si] >> 0;
+        buffer[stride + 2] = rb[si] >> 0;
         buffer[stride + 3] = 255;
     }
     let canvas = document.createElement('canvas');
@@ -111,15 +111,15 @@ function init3D()
         let ti = triMesh[i];
         positions[9 * i]     = ti[0][0];
         positions[9 * i + 1] = ti[0][1];
-        positions[9 * i + 2] = ti[0][2];
+        positions[9 * i + 2] = ti[0][2] / 4;
 
         positions[9 * i + 3] = ti[1][0];
         positions[9 * i + 4] = ti[1][1];
-        positions[9 * i + 5] = ti[1][2];
+        positions[9 * i + 5] = ti[1][2] / 4;
 
         positions[9 * i + 6] = ti[2][0];
         positions[9 * i + 7] = ti[2][1];
-        positions[9 * i + 8] = ti[2][2];
+        positions[9 * i + 8] = ti[2][2] / 4;
     }
     let positionAttribute = new BufferAttribute(positions, 3);
     geometry.setAttribute('position', positionAttribute);
@@ -134,7 +134,7 @@ function init3D()
     scene.add(cube);
 
     let p = new Mesh(
-        new PlaneBufferGeometry(10, 10),
+        new PlaneBufferGeometry(2, 2),
         new MeshBasicMaterial({
             color: 0x0000ff, transparent: true, opacity: 0.5
         })
@@ -145,7 +145,7 @@ function init3D()
     let li = new DirectionalLight(0xffffff, 2);
     li.position.set(1, -1, 2);
     scene.add(li);
-    camera.position.z = 5;
+    camera.position.z = 1;
     new OrbitControls(camera, container);
     let animate = function ()
     {
