@@ -5,203 +5,10 @@
     <base href="<%= htmlWebpackPlugin.options.baseUrl %>" />
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <style>
-        body {
-            font-family: Raleway, sans-serif;
-            background-color: #eee;
-            display: flex;
-            flex-direction: column;
-        }
-
-        div#header {
-            font-size: 2rem;
-            text-align: right;
-            margin-bottom: 1rem;
-        }
-        div#container {
-            display: flex;
-            flex-direction: row;
-        }
-        div#menu {
-            height: 100%;
-            flex: 0 1 15rem;
-        }
-
-        div#content {
-            flex: 1;
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-        }
-
-        div#menu ul {
-            list-style-type: none;
-            font-size: 2rem;
-            margin: 0;
-            padding: 0;
-        }
-
-        div.project-icon {
-            flex: 0 1 33%;
-            text-align: center;
-            margin-bottom: 1em;
-        }
-        div.project, div.note, div.books {
-            padding: 1em 2em 1em 2em;
-            width: 100%;
-            clear: both;
-            overflow: auto;
-            background-color: white;
-        }
-
-        div.note h1 {
-            margin: 0;
-            padding: 0;
-            font-size: 3rem;
-            text-align: center;
-        }
-
-        h2 {
-            font-size: 2rem;
-            padding: 0;
-            margin: 0;
-        }
-        h3 {
-            font-size: 1.5rem;
-        }
-        p.medium {
-            font-size: 1rem;
-            font-style: italic;
-        }
-        div.example-tweets, div.example-images {
-            float: right;
-            width: 400px;
-            margin-left: 1em;
-        }
-
-        div.example {
-            margin: 0.5em;
-            padding: 1em;
-            background-color: #eee;
-            clear: both;
-            overflow: auto;
-        }
-
-        div.controlset {
-            overflow: auto;
-        }
-        div.control {
-            padding: 0.5em;
-            float: left;
-        }
-
-        div.output {
-            padding: 0.5em;
-            clear: both;
-        }
-
-        div.book {
-            padding-top: 1em;
-        }
-
-        .book .title {
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-
-        .book  .author {
-            font-style: italic;
-            font-size: 1.5rem;
-        }
-        div#footer {
-            clear: both;
-            font-size: small;
-            text-align: center;
-        }
-
-        button {
-            font-size: large;
-            background-color: white;
-            color: black;
-            border-radius: 0.5rem;
-            border: 1px solid black;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        button:hover {
-            background-color: black;
-            color: white;
-        }
-
-
-        select {
-            background-color: white;
-            border: solid 1px black;
-            font-size: medium;
-            margin-left: 0.5rem;
-        }
-
-        figcaption {
-            text-align: center;
-        }
-
-        path, line {
-            fill: none;
-            stroke: black;
-            stroke-linecap: round;
-        }
-
-        .field {
-            stroke: none;
-            fill-opacity: 1.0;
-        }
-
-        .slope {
-            stroke-width: 1;
-        }
-
-        .river {
-            stroke-width: 2;
-        }
-
-        .coast {
-            stroke-width: 4;
-        }
-
-        .border {
-            stroke-width: 5;
-            stroke-dasharray: 4,4;
-            stroke-linecap: butt;
-        }
-
-        text {
-            font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
-            color: black;
-            stroke: white;
-            stroke-width: 5;
-            stroke-linejoin: round;
-            paint-order: stroke;
-        }
-
-        text.region {
-            stroke-width:10;
-            font-variant: small-caps;
-        }
-
-        svg {
-            float: right;
-            background-color: white;
-        }
-
-        #gl {
-            width: 250px;
-            height: 250px;
-        }
-    </style>
 </head>
 <body>
 
+<div id="gl"></div>
 
 <div class="example" id="mesh">
     <p>
@@ -215,43 +22,33 @@
     <p>Note: the black line indicates the zero contour, which we treat as 'sea level'. Also, this map uses 4,096 (2<sup>12</sup>) points, for speed.</p>
 </div>
 
-
 <div class="example">
     <h4>Aside: the Planchon-Darboux algorithm</h4>
-
     <p>The algorithm works by finding the lowest surface with the following two properties:</p>
-
     <ul>
         <li>The surface is everywhere at least as high as the input surface</li>
         <li>Every non-edge point has a neighbour which is lower than it</li>
     </ul>
-
     <p>To calculate this, we start with an infinitely high surface everywhere
         except on the edge, where we use the original heights. Then, on each iteration,
         we find points which have a neighbour which is lower than them, and set their
         height to their original height, or the height of their lowest neighbour (plus
         a small amount), whichever is higher. We halt when we can go a full iteration
         without changing any point.</p>
-
     <p>There are various ways of speeding up this algorithm, mostly by tweaking the
         order in which points are visited. For more details, and a proof of
         correctness, you can read <a href="http://horizon.documentation.ird.fr/exl-doc/pleins_textes/pleins_textes_7/sous_copyright/010031925.pdf">the original paper</a>.</p>
 </div>
 
-<div class="example" id="erode">
-</div>
+<div class="example" id="erode"></div>
 
-<div class="example" id="phys">
-</div>
+<div class="example" id="phys"></div>
 
-<div class="example" id="city">
-</div>
+<div class="example" id="city"></div>
 
 <div class="example" id="final">
     <p>I wanted to make a nice interactive example for this, but trying to separate out the label placement code made me feel physically unwell. Sorry about that.</p>
 </div>
-
-<div id="gl"></div>
 
 </body>
 </html>

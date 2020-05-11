@@ -130,6 +130,8 @@ Mesher.prototype.makeMesh = function(pts, extent)
         if (right && !tris[e1].includes(right)) tris[e1].push(right);
     }
 
+    let borderStart = vxs.length;
+
     // Border surgery
     let w = extent.width / 2;
     let h = extent.height / 2;
@@ -214,6 +216,7 @@ Mesher.prototype.makeMesh = function(pts, extent)
         vxs: vxs,
         adj: adj,
         tris: tris,
+        nbInteriorTris: borderStart,
     }
 
     let vl = vxs.length;

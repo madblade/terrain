@@ -1,3 +1,5 @@
+import './style.css';
+
 import { init }              from './terrain/home/home';
 import {
     BufferAttribute, BufferGeometry,
@@ -28,15 +30,10 @@ let terrainGenerator = new TerrainGenerator(mesher, fieldModifier, eroder);
 let languageGenerator = new LanguageGenerator();
 let nameGiver = new NameGiver(languageGenerator);
 
-init(
-    mesher,
-    fieldModifier,
-    eroder,
-    cityPlacer,
-    terrainGenerator,
-    languageGenerator,
-    nameGiver
-);
+// init(
+//     mesher, fieldModifier, eroder, cityPlacer,
+//     terrainGenerator, languageGenerator, nameGiver
+// );
 
 let country = { params: defaultParams };
 country.mesh = terrainGenerator.generateCoast(defaultParams);
@@ -103,8 +100,6 @@ let material = new MeshPhongMaterial(
     { color: 0x00ff00, side: DoubleSide }
     );
 let cube = new Mesh(geometry, material);
-// cube.scale.multiplyScalar(4.0);
-// cube.scale.z /= 4;
 scene.add(cube);
 
 let p = new Mesh(
@@ -121,8 +116,6 @@ camera.position.z = 5;
 new OrbitControls(camera, container);
 let animate = function () {
     requestAnimationFrame(animate);
-    // cube.rotation.x += 0.01;
-    // cube.rotation.y += 0.01;
     renderer.render(scene, camera);
 };
 animate();

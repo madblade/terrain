@@ -11,6 +11,7 @@ Rasterizer.prototype.computeTriMesh = function(
     let pts = mesh.pts;
     let tris = mesh.tris;
     let values = mesh.buffer;
+    let nbInteriorTris = mesh.nbInteriorTris;
 
     let triMesh = [];
     let z = new Map();
@@ -20,7 +21,7 @@ Rasterizer.prototype.computeTriMesh = function(
     for (let i = 0; i < tris.length; ++i)
     {
         let t = tris[i];
-        let v = values[i];
+        let v = i >= nbInteriorTris ? -0.01 : values[i];
         if (t.length !== 3) continue;
         for (let j = 0; j < 3; ++j) {
             let p = t[j];
