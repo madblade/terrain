@@ -86,39 +86,49 @@ Rasterizer.prototype.computeTriMesh = function(
     return triMesh;
 }
 
-// https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
-// Bresenham algorithm
 Rasterizer.prototype.putPixel = function(x, y, v)
 {
     let buffer = this.heightBuffer;
     const w = this.dimension;
     buffer[y * w + x] = v;
 };
+
+// https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
+// Algorithm from Eric Andres, “Discrete circles, rings and spheres”
 Rasterizer.prototype.drawCircle = function(centerX, centerY, radius)
 {
-    let x; let y; let p;
-    x = 0; y = radius;
+    let x; let y; let d;
+    x = 0; y = radius; d = radius - 1;
 
-    this.putPixel(centerX + x, centerY - y, -1);
-    p = 3 - 2 * radius;
-    for (x = 0; x <= y; ++x)
+    const v = -1;
+    while (y >= x)
     {
-        if (p < 0) p = p + 4 * x + 6;
+        this.putPixel(centerX + x, centerY + y, v);
+        this.putPixel(centerX + y, centerY + x, v);
+        this.putPixel(centerX - x, centerY + y, v);
+        this.putPixel(centerX - y, centerY + x, v);
+
+        this.putPixel(centerX + x, centerY - y, v);
+        this.putPixel(centerX + y, centerY - x, v);
+        this.putPixel(centerX - x, centerY - y, v);
+        this.putPixel(centerX - y, centerY - x, v);
+
+        if (d >= 2 * x)
+        {
+            d -= 2 * x + 1;
+            ++x;
+        }
+        else if (d < 2 * (radius - y))
+        {
+            d += 2 * y - 1;
+            --y;
+        }
         else
         {
+            d += 2 * (y - x - 1);
             --y;
-            p += 4 * (x - y) + 10;
+            ++x;
         }
-
-        this.putPixel(centerX + x, centerY - y, -1);
-        this.putPixel(centerX - x, centerY - y, -1);
-        this.putPixel(centerX + x, centerY + y, -1);
-        this.putPixel(centerX - x, centerY + y, -1);
-
-        this.putPixel(centerX + y, centerY - x, -1);
-        this.putPixel(centerX - y, centerY - x, -1);
-        this.putPixel(centerX + y, centerY + x, -1);
-        this.putPixel(centerX - y, centerY + x, -1);
     }
 }
 
@@ -284,19 +294,20 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         cX /= l; cY /= l;
 
         // City draw
-        let cityRadius = i < 5 ? 10 : 2; // nb blocks
-        this.drawCircle(
-            ((0.5 + cX) * width - 0.5) >> 0,
-            ((0.5 + cY) * height - 0.5) >> 0,
-            cityRadius
-        );
-        // TODO draw circle and walls
+        const cityRadius = i < 5 ? 10 : 5; // nb blocks
+        const centerX = ((0.5 + cX) * width - 0.5) >> 0;
+        const centerY = ((0.5 + cY) * height - 0.5) >> 0;
+        this.drawCircle(centerX, centerY, cityRadius);
+        this.drawCircle(centerX, centerY, cityRadius - 1);
+        this.drawCircle(centerX, centerY, cityRadius - 2);
+        // TODO larger circle and walls, noisy
+        // TODO ring
     }
 };
 
 Rasterizer.prototype.treePass = function(mesh)
 {
-
+    // TODO never on a chunk border
 };
 
 export { Rasterizer };
