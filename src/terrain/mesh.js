@@ -155,33 +155,35 @@ Mesher.prototype.makeMesh = function(pts, extent)
             let midY = (ea[1] + eb[1]) / 2;
             let newP1; let newP2;
             let newTri1; let newTri2;
+            const newIndex1 = vxs.length;
+            const newIndex2 = vxs.length + 1;
             if (Math.abs(midX) > Math.abs(midY)) { // centered in 0
                 if (midX > 0) {
                     newP1 = [w, ea[1]]; newP2 = [w, eb[1]];
                     if (Math.max(ea[1], eb[1]) > topRight[1]) topRight[1] = Math.max(ea[1], eb[1]);
                     if (Math.min(ea[1], eb[1]) < bottomRight[1]) bottomRight[1] = Math.min(ea[1], eb[1]);
-                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
-                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = newIndex1;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = newIndex2;
                 } else {
                     newP1 = [-w, ea[1]]; newP2 = [-w, eb[1]];
                     if (Math.max(ea[1], eb[1]) > topLeft[1]) topLeft[1] = Math.max(ea[1], eb[1]);
                     if (Math.min(ea[1], eb[1]) < bottomLeft[1]) bottomLeft[1] = Math.min(ea[1], eb[1]);
-                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
-                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = newIndex1;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = newIndex2;
                 }
             } else {
                 if (midY > 0) {
                     newP1 = [ea[0], h]; newP2 = [eb[0], h];
                     if (Math.max(ea[0], eb[0]) > topRight[0]) topRight[0] = Math.max(ea[0], eb[0]);
                     if (Math.min(ea[0], eb[0]) < topLeft[0]) topLeft[0] = Math.min(ea[0], eb[0]);
-                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
-                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = newIndex1;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = newIndex2;
                 } else {
                     newP1 = [ea[0], -h]; newP2 = [eb[0], -h];
                     if (Math.max(ea[0], eb[0]) > bottomRight[0]) bottomRight[0] = Math.max(ea[0], eb[0]);
                     if (Math.min(ea[0], eb[0]) < bottomLeft[0]) bottomLeft[0] = Math.min(ea[0], eb[0]);
-                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = vxs.length;
-                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = vxs.length + 1;
+                    newTri1 = [ea, eb, [newP1[0], newP1[1]]]; newTri1[2].index = newIndex1;
+                    newTri2 = [eb, newTri1[2], [newP2[0], newP2[1]]]; newTri2[2].index = newIndex2;
                 }
             }
 

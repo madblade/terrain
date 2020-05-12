@@ -33,8 +33,12 @@ Rasterizer.prototype.computeTriMesh = function(
     for (let i = 0; i < tris.length; ++i)
     {
         let t = tris[i];
-        let v = i >= nbInteriorTris ? -0.01 : values[i];
-        // let v = values[i];
+        // let v = i >= nbInteriorTris ? -0.01 : values[i];
+        let v = values[i];
+        if (i >= nbInteriorTris)
+        {
+            console.log(values[i]);
+        }
         if (t.length !== 3) continue;
         for (let j = 0; j < 3; ++j) {
             let p = t[j];
@@ -262,7 +266,8 @@ Rasterizer.prototype.riverPass = function(rivers)
 
             // let pixelA2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
             // let pixelB2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
-            // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
+            // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };j
+            // TODO other triangle
             this.drawTriangle(
                 [pixelA1.x, pixelA1.y, pixelA1.z],
                 [pixelB1.x, pixelB1.y, pixelB1.z],
@@ -270,6 +275,15 @@ Rasterizer.prototype.riverPass = function(rivers)
             );
         }
     }
+};
+
+Rasterizer.prototype.drawCity = function(cityX, cityY, cityRadius)
+{
+    this.drawCircle(cityX, cityY, cityRadius);
+    this.drawCircle(cityX, cityY, cityRadius - 1);
+    this.drawCircle(cityX, cityY, cityRadius - 2);
+    // TODO noisier
+    // TODO inside of cities
 };
 
 Rasterizer.prototype.cityPass = function(mesh, cities)
@@ -286,7 +300,7 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         let t = tris[c];
         let cX = 0; let cY = 0;
         const l = t.length;
-        if (l !== 2 || l !== 3) console.error('Uncommon tri length.');
+        if (l !== 2 && l !== 3) console.error(`Uncommon tri length: ${l}.`);
         for (let j = 0; j < l; ++j) {
             cX += t[j][0];
             cY += t[j][1];
@@ -297,11 +311,7 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         const cityRadius = i < 5 ? 10 : 5; // nb blocks
         const centerX = ((0.5 + cX) * width - 0.5) >> 0;
         const centerY = ((0.5 + cY) * height - 0.5) >> 0;
-        this.drawCircle(centerX, centerY, cityRadius);
-        this.drawCircle(centerX, centerY, cityRadius - 1);
-        this.drawCircle(centerX, centerY, cityRadius - 2);
-        // TODO larger circle and walls, noisy
-        // TODO ring
+        this.drawCity(centerX, centerY, cityRadius);
     }
 };
 

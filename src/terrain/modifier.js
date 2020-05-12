@@ -139,7 +139,7 @@ FieldModifier.prototype.relax = function(mesh)
     {
         let nbs = mesher.neighbours(mesh, i);
         if (nbs.length < 3) {
-            newh[i] = 0;
+            newh[i] = field[i];
             continue;
         }
         newh[i] = mean(nbs, field);

@@ -129,10 +129,11 @@ function init3D()
     let positionAttribute = new BufferAttribute(positions, 3);
     geometry.setAttribute('position', positionAttribute);
     geometry.computeVertexNormals();
-    let material = new MeshBasicMaterial(
+    let material = new MeshPhongMaterial(
         {
             color: 0x00ff00, side: DoubleSide,
-            wireframe: true
+            shininess: 0
+            // wireframe: true
         }
     );
     let cube = new Mesh(geometry, material);
@@ -151,7 +152,10 @@ function init3D()
     li.position.set(1, -1, 2);
     scene.add(li);
     camera.position.z = 1;
-    new OrbitControls(camera, container);
+
+    let oc = new OrbitControls(camera, container);
+    oc.enableRotate = false;
+    oc.screenSpacePanning = true;
     let animate = function ()
     {
         requestAnimationFrame(animate);

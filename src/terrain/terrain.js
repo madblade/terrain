@@ -34,11 +34,15 @@ TerrainGenerator.prototype.generateCoast = function(params)
     const eroder = this.eroder;
 
     let mesh = mesher.generateGoodMesh(params.npts, params.extent);
+
+    fieldModifier.resetBuffer(mesh.tris.length);
     fieldModifier.addSlope(mesh, this.randomVector(4));
     fieldModifier.addCone(mesh, this.runif(-1, -1));
     fieldModifier.addMountains(mesh, 50);
     for (let i = 0; i < 10; i++)
+    {
         fieldModifier.relax(mesh);
+    }
 
     fieldModifier.peaky(mesh);
 
