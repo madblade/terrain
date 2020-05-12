@@ -4,6 +4,9 @@ import { Random }       from './random';
 let Rasterizer = function()
 {
     this.dimension = 512;
+    this.chunkHeight = 16;
+    this.chunkWidth = 16;
+    this.biomeDimension = this.dimension / this.chunkHeight;
 
     this.heightBuffer = [];
     this.chunkBiomes = [];
@@ -93,10 +96,10 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
     let v2h = vertex2;
     let v3h = vertex3;
 
-    let minX = Math.min(v1h[0], v2h[0], v3h[0]);
-    let maxX = Math.max(v1h[0], v2h[0], v3h[0]);
-    let minY = Math.min(v1h[1], v2h[1], v3h[1]);
-    let maxY = Math.max(v1h[1], v2h[1], v3h[1]);
+    const minX = Math.min(v1h[0], v2h[0], v3h[0]);
+    const maxX = Math.max(v1h[0], v2h[0], v3h[0]);
+    const minY = Math.min(v1h[1], v2h[1], v3h[1]);
+    const maxY = Math.max(v1h[1], v2h[1], v3h[1]);
 
     let f12 = (x, y) => (v1h[1] - v2h[1]) * x
             + (v2h[0] - v1h[0]) * y
@@ -110,20 +113,23 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
             + (v1h[0] - v3h[0]) * y
             + v3h[0] * v1h[1] - v1h[0] * v3h[1];
 
-    let startY = Math.floor(minY), startX = Math.floor(minX);
-    let endY = Math.ceil(maxY), endX = Math.ceil(maxX);
+    const startY = Math.floor(minY); const startX = Math.floor(minX);
+    const endY = Math.ceil(maxY); const endX = Math.ceil(maxX);
+    const alphaDen = f23(v1h[0], v1h[1]);
+    const betaDen = f31(v2h[0], v2h[1]);
+    const gammaDen = f12(v3h[0], v3h[1]);
     for (let y = startY; y <= endY; ++y)
     {
         const offset = this.dimension * y;
         for (let x = startX; x <= endX; ++x)
         {
-            let alpha = f23(x, y) / f23(v1h[0], v1h[1]);
-            let beta = f31(x, y) / f31(v2h[0], v2h[1]);
-            let gamma = f12(x, y) / f12(v3h[0], v3h[1]);
+            const alpha = f23(x, y) / alphaDen;
+            const beta = f31(x, y) / betaDen;
+            const gamma = f12(x, y) / gammaDen;
 
             if (alpha > 0 && beta > 0 && gamma > 0)
             {
-                let h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
+                const h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
                 // if (h < 0) h = 255;
                 this.heightBuffer[offset + x] = h;
                     // h;
@@ -137,6 +143,7 @@ Rasterizer.prototype.heightPass = function (triMesh)
     const width = this.dimension;
     const height =  this.dimension;
     this.heightBuffer = new Int32Array(width * height);
+    this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
 
     const nbTris = triMesh.length;
     for (let i = 0; i < nbTris; ++i)
@@ -160,33 +167,88 @@ Rasterizer.prototype.heightPass = function (triMesh)
 Rasterizer.prototype.noisePass = function(factor)
 {
     let nng = this.nng;
-    let height = this.dimension;
-    let width = this.dimension;
     let buffer = this.heightBuffer;
-    let f = factor * 64;
+    const height = this.dimension;
+    const width = this.dimension;
+    const f = factor * 64;
     for (let y = 0; y <= height; ++y)
     {
         const offset = width * y;
         for (let x = 0; x <= width; ++x)
         {
+            // TODO only if >= water level
             buffer[offset + x] +=
-                (nng.noise(x / 256, y / 256) +
-                nng.noise(x / 64, y / 64) +
-                nng.noise(x / 16, y / 16) +
-                nng.noise(x / 4, y / 4)) * f;
+                (
+                    nng.noise(x / 256, y / 256) +
+                    nng.noise(x / 64, y / 64) +
+                    nng.noise(x / 16, y / 16) +
+                    nng.noise(x / 4, y / 4)
+                ) * f;
         }
     }
 
+    // TODO compute chunk biome
+    // const chunkW = this.chunkWidth;
+    // const chunkH = this.chunkHeight;
+    // const biomeDimension = this.biomeDimension;
+    // if (x % chunkW === chunkW / 2 && y % chunkH === chunkH / 2) {
+    //     this.chunkBiomes[(x % chunkW) * biomeDimension + y % chunkH] = h > 0 ? 1 : 0;
+    // }
 };
 
-Rasterizer.prototype.riverPass = function(mesh)
+Rasterizer.prototype.riverPass = function(rivers)
 {
+    const width = this.dimension;
+    const height = this.dimension;
+    const nbRivers = rivers.length;
+    for (let i = 0; i < nbRivers; ++i)
+    {
+        const r = rivers[i];
+        const nbSegments = r.length - 1;
+        for (let j = 0; j < nbSegments; ++j)
+        {
+            let p1 = r[j];
+            let p2 = r[j + 1];
 
+            let pixelA1 = { x: (0.5 + p1[0]) * width - 1.5, y: (0.5 + p1[1]) * height - 1.5, z: -1 };
+            let pixelB1 = { x: (0.5 + p1[0]) * width + 1.5, y: (0.5 + p1[1]) * height + 1.5, z: -1 };
+            let pixelC1 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
+
+            // let pixelA2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
+            // let pixelB2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
+            // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
+            this.drawTriangle(
+                [pixelA1.x, pixelA1.y, pixelA1.z],
+                [pixelB1.x, pixelB1.y, pixelB1.z],
+                [pixelC1.x, pixelC1.y, pixelC1.z],
+            );
+        }
+    }
 };
 
-Rasterizer.prototype.cityPass = function(mesh)
+Rasterizer.prototype.cityPass = function(mesh, cities)
 {
+    const nbCities = cities.length;
+    let tris = mesh.tris;
+    for (let i = 0; i < nbCities; ++i)
+    {
+        let c = cities[i];
 
+        // City center
+        let t = tris[c];
+        let cX = 0; let cY = 0;
+        const l = t.length;
+        if (l !== 2 || l !== 3) console.error('Uncommon tri length.');
+        for (let j = 0; j < l; ++j) {
+            cX += t[j][0];
+            cY += t[j][1];
+        }
+        cX /= l; cY /= l;
+
+        // City draw
+        let cityRadius = i < 5 ? 100 : 25; // nb blocks
+        // TODO draw circle and walls
+    }
 };
 
 Rasterizer.prototype.treePass = function(mesh)

@@ -38,7 +38,7 @@ let svgDrawer = new SVGDrawer(mesher, eroder, terrainGenerator, cityPlacer, name
 
 function init3D()
 {
-    let country = {params: defaultParams};
+    let country = { params: defaultParams };
     country.mesh = terrainGenerator.generateCoast(defaultParams);
     cityPlacer.placeCities(country);
     country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
@@ -46,11 +46,14 @@ function init3D()
     country.terr = cityPlacer.getTerritories(country);
     country.borders = cityPlacer.getBorders(country);
 
+    console.log(country.cities);
     let rasterizer = new Rasterizer();
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
     rasterizer.heightPass(triMesh);
     rasterizer.noisePass(0.1);
+    rasterizer.riverPass(country.rivers);
+    rasterizer.cityPass(country.mesh, country.cities);
 
     // let finalDiv = d3select("div#fin");
     // let finalSVG = svgDrawer.addSVG(finalDiv);
@@ -65,9 +68,10 @@ function init3D()
         let s = i * width + j;
         let stride = s * 4;
         let si = (width - i - 1) * width + j;
-        buffer[stride    ] = rb[si] >> 0;
-        buffer[stride + 1] = rb[si] >> 0;
-        buffer[stride + 2] = rb[si] >> 0;
+        let v = rb[si] >> 0;
+        buffer[stride    ] = v > 0 ? v : 0;
+        buffer[stride + 1] = v > 0 ? v : 0;
+        buffer[stride + 2] = v > 0 ? v : 255;
         buffer[stride + 3] = 255;
     }
     let canvas = document.createElement('canvas');
