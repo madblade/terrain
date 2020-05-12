@@ -1,11 +1,16 @@
+import { SimplexNoise } from './simplex';
+import { Random }       from './random';
 
 let Rasterizer = function()
 {
-    this.dimension = 256;
+    this.dimension = 512;
 
     this.heightBuffer = [];
     this.chunkBiomes = [];
     this.surfaceBuffer = [];
+
+    this.rng = new Random('simplex')
+    this.nng = new SimplexNoise(this.rng);
 };
 
 Rasterizer.prototype.computeTriMesh = function(
@@ -67,9 +72,10 @@ Rasterizer.prototype.computeTriMesh = function(
         for (let j = 0; j < 3; ++j)
         {
             let p = t[j];
-            let index = `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
+            let x = p[0]; let y = p[1];
+            let index = `${x.toFixed(5)},${y.toFixed(5)}`;
             let height = z.get(index) / zPass.get(index);
-            newTri.push([p[0], p[1], height]);
+            newTri.push([x, y, height]);
         }
         triMesh.push(newTri);
     }
@@ -77,6 +83,8 @@ Rasterizer.prototype.computeTriMesh = function(
     return triMesh;
 }
 
+// from https://github.com/delphifirst/js-rasterizer
+// Copyright (c) 2016 Yang Cao
 Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
 {
     // The first element in each vertex is always position
@@ -104,6 +112,7 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
 
     let startY = Math.floor(minY), startX = Math.floor(minX);
     let endY = Math.ceil(maxY), endX = Math.ceil(maxX);
+    let nng = this.nng;
     for (let y = startY; y <= endY; ++y)
     {
         const offset = this.dimension * y;
@@ -117,7 +126,14 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
             {
                 let h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
                 // if (h < 0) h = 255;
-                this.heightBuffer[offset + x] = h;
+                this.heightBuffer[offset + x] =
+                    (
+                        nng.noise(0.5 * x / 128, 0.5 * y / 128) * 64 +
+                        nng.noise(0.5 * x / 32, 0.5 * y / 32) * 64 +
+                        nng.noise(0.5 * x / 8, 0.5 * y / 8) * 64 +
+                        nng.noise(0.5 * x / 2, 0.5 * y / 2) * 64
+                    );
+                    // h;
             }
         }
     }

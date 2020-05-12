@@ -44,6 +44,7 @@ let Random = function(textSeed)
     this.uniform = function() {
         return rand1();
     };
+    this.random = this.uniform; // alias for simplex generator
 
     /**
      * Normal distribution generator.
