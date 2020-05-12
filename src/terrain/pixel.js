@@ -112,7 +112,6 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
 
     let startY = Math.floor(minY), startX = Math.floor(minX);
     let endY = Math.ceil(maxY), endX = Math.ceil(maxX);
-    let nng = this.nng;
     for (let y = startY; y <= endY; ++y)
     {
         const offset = this.dimension * y;
@@ -126,13 +125,7 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
             {
                 let h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
                 // if (h < 0) h = 255;
-                this.heightBuffer[offset + x] =
-                    (
-                        nng.noise(0.5 * x / 128, 0.5 * y / 128) * 64 +
-                        nng.noise(0.5 * x / 32, 0.5 * y / 32) * 64 +
-                        nng.noise(0.5 * x / 8, 0.5 * y / 8) * 64 +
-                        nng.noise(0.5 * x / 2, 0.5 * y / 2) * 64
-                    );
+                this.heightBuffer[offset + x] = h;
                     // h;
             }
         }
@@ -164,8 +157,25 @@ Rasterizer.prototype.heightPass = function (triMesh)
     }
 }
 
-Rasterizer.prototype.noisePass = function(mesh)
+Rasterizer.prototype.noisePass = function(factor)
 {
+    let nng = this.nng;
+    let height = this.dimension;
+    let width = this.dimension;
+    let buffer = this.heightBuffer;
+    let f = factor * 64;
+    for (let y = 0; y <= height; ++y)
+    {
+        const offset = width * y;
+        for (let x = 0; x <= width; ++x)
+        {
+            buffer[offset + x] +=
+                (nng.noise(x / 256, y / 256) +
+                nng.noise(x / 64, y / 64) +
+                nng.noise(x / 16, y / 16) +
+                nng.noise(x / 4, y / 4)) * f;
+        }
+    }
 
 };
 

@@ -50,6 +50,7 @@ function init3D()
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
     rasterizer.heightPass(triMesh);
+    rasterizer.noisePass(0.1);
 
     // let finalDiv = d3select("div#fin");
     // let finalSVG = svgDrawer.addSVG(finalDiv);
