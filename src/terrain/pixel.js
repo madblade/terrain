@@ -86,6 +86,42 @@ Rasterizer.prototype.computeTriMesh = function(
     return triMesh;
 }
 
+// https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
+// Bresenham algorithm
+Rasterizer.prototype.putPixel = function(x, y, v)
+{
+    let buffer = this.heightBuffer;
+    const w = this.dimension;
+    buffer[y * w + x] = v;
+};
+Rasterizer.prototype.drawCircle = function(centerX, centerY, radius)
+{
+    let x; let y; let p;
+    x = 0; y = radius;
+
+    this.putPixel(centerX + x, centerY - y, -1);
+    p = 3 - 2 * radius;
+    for (x = 0; x <= y; ++x)
+    {
+        if (p < 0) p = p + 4 * x + 6;
+        else
+        {
+            --y;
+            p += 4 * (x - y) + 10;
+        }
+
+        this.putPixel(centerX + x, centerY - y, -1);
+        this.putPixel(centerX - x, centerY - y, -1);
+        this.putPixel(centerX + x, centerY + y, -1);
+        this.putPixel(centerX - x, centerY + y, -1);
+
+        this.putPixel(centerX + y, centerY - x, -1);
+        this.putPixel(centerX - y, centerY - x, -1);
+        this.putPixel(centerX + y, centerY + x, -1);
+        this.putPixel(centerX - y, centerY + x, -1);
+    }
+}
+
 // from https://github.com/delphifirst/js-rasterizer
 // Copyright (c) 2016 Yang Cao
 Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
@@ -229,6 +265,8 @@ Rasterizer.prototype.riverPass = function(rivers)
 Rasterizer.prototype.cityPass = function(mesh, cities)
 {
     const nbCities = cities.length;
+    const width = this.dimension;
+    const height = this.dimension;
     let tris = mesh.tris;
     for (let i = 0; i < nbCities; ++i)
     {
@@ -246,7 +284,12 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         cX /= l; cY /= l;
 
         // City draw
-        let cityRadius = i < 5 ? 100 : 25; // nb blocks
+        let cityRadius = i < 5 ? 10 : 2; // nb blocks
+        this.drawCircle(
+            ((0.5 + cX) * width - 0.5) >> 0,
+            ((0.5 + cY) * height - 0.5) >> 0,
+            cityRadius
+        );
         // TODO draw circle and walls
     }
 };
