@@ -50,10 +50,13 @@ function init3D()
     let rasterizer = new Rasterizer();
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
-    rasterizer.heightPass(triMesh);
-    rasterizer.noisePass(0.1);
-    rasterizer.riverPass(country.rivers);
-    rasterizer.cityPass(country.mesh, country.cities);
+    // rasterizer.heightPass(triMesh);
+    rasterizer.initBuffers(triMesh);
+    rasterizer.noisePass(5.0);
+    console.log('/noise');
+    console.log(rasterizer.heightBuffer);
+    // rasterizer.riverPass(country.rivers);
+    // rasterizer.cityPass(country.mesh, country.cities);
 
     // let finalDiv = d3select("div#fin");
     // let finalSVG = svgDrawer.addSVG(finalDiv);

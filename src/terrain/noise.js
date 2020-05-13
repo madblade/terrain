@@ -74,14 +74,14 @@ SimplexNoise.prototype.noise = function (xin, yin)
 
     let n0, n1, n2; // Noise contributions from the three corners
     // Skew the input space to determine which simplex cell we're in
-    let F2 = this.F2;
-    let s = (xin + yin) * F2; // Hairy factor for 2D
-    let i = Math.floor(xin + s);
-    let j = Math.floor(yin + s);
-    let G2 = this.G2;
-    let t = (i + j) * G2;
-    let X0 = i - t; // Unskew the cell origin back to (x,y) space
-    let Y0 = j - t;
+    const F2 = this.F2;
+    const s = (xin + yin) * F2; // Hairy factor for 2D
+    const i = Math.floor(xin + s);
+    const j = Math.floor(yin + s);
+    const G2 = this.G2;
+    const t = (i + j) * G2;
+    const X0 = i - t; // Unskew the cell origin back to (x,y) space
+    const Y0 = j - t;
     let x0 = xin - X0; // The x,y distances from the cell origin
     let y0 = yin - Y0;
     // For the 2D case, the simplex shape is an equilateral triangle.
@@ -101,23 +101,27 @@ SimplexNoise.prototype.noise = function (xin, yin)
     // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
     // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
     // c = (3 - sqrt(3)) / 6
-    let x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-    let y1 = y0 - j1 + G2;
-    let x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
-    let y2 = y0 - 1.0 + 2.0 * G2;
+    const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+    const y1 = y0 - j1 + G2;
+    const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
+    const y2 = y0 - 1.0 + 2.0 * G2;
     // Work out the hashed gradient indices of the three simplex corners
     let ii = i & 255;
     let jj = j & 255;
-    let gi0 = this.perm[ii + this.perm[jj]] % 12;
-    let gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
-    let gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
+
+    const p = this.perm;
+    const g3 = this.grad3;
+
+    // let gi0 = p[ii + p[jj]] % 12;
+    let gi1 = p[ii + i1 + p[jj + j1]] % 12;
+    let gi2 = p[ii + 1 + p[jj + 1]] % 12;
     // Calculate the contribution from the three corners
     let t0 = 0.5 - x0 * x0 - y0 * y0;
     if (t0 < 0) n0 = 0.0;
     else
     {
         t0 *= t0;
-        n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0);
+        n0 = t0 * t0 * this.dot(g3[p[ii + p[jj]] % 12], x0, y0);
         // (x,y) of grad3 used for 2D gradient
     }
 
@@ -126,7 +130,7 @@ SimplexNoise.prototype.noise = function (xin, yin)
     else
     {
         t1 *= t1;
-        n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
+        n1 = t1 * t1 * this.dot(g3[p[ii + i1 + p[jj + j1]] % 12], x1, y1);
     }
 
     let t2 = 0.5 - x2 * x2 - y2 * y2;
@@ -134,7 +138,7 @@ SimplexNoise.prototype.noise = function (xin, yin)
     else
     {
         t2 *= t2;
-        n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
+        n2 = t2 * t2 * this.dot(g3[p[ii + 1 + p[jj + 1]] % 12], x2, y2);
     }
 
     // Add contributions from each corner to get the final noise value.
@@ -251,4 +255,61 @@ SimplexNoise.prototype.noise3d = function (xin, yin, zin)
     return 32.0 * (n0 + n1 + n2 + n3);
 };
 
-export { SimplexNoise };
+let TileablePerlinNoise = function(r)
+{
+    this.r = r;
+    if (!this.r) this.r = Math;
+
+    this.p = [];
+    for (let i = 0; i < 256; i++)
+        this.p[i] = Math.floor(this.r.random() * 256);
+    this.perm = [];
+    for(let i = 0; i < 512; i++)
+        this.perm[i] = this.p[i & 255];
+
+    this.dirs = [];
+    const pi2256 = 2.0 * Math.PI / 256;
+    for (let i = 0; i < 256; i++)
+        this.dirs[i] = [Math.cos(i * pi2256), Math.sin(i * pi2256)];
+};
+
+TileablePerlinNoise.prototype.surflet = function(x, y, gridX, gridY, per)
+{
+    const distX = Math.abs(x - gridX);
+    const distY = Math.abs(y - gridY);
+    const polyX = 1 - distX * distX * distX * (distX * (distX * 6 - 15) + 10);
+    const polyY = 1 - distY * distY * distY * (distY * (distY * 6 - 15) + 10);
+    const p = this.perm;
+    const d = this.dirs;
+    const hashed = p[(p[gridX % per] + gridY) % per];
+    if (!d[hashed]) debugger;
+    const grad = (x - gridX) * d[hashed][0] + (y - gridY) * d[hashed][1];
+    return polyX * polyY * grad;
+};
+
+TileablePerlinNoise.prototype.noise = function(x, y, per)
+{
+    const intX = x >> 0;
+    const intY = y >> 0;
+    let v = 0;
+    v += this.surflet(x, y, intX, intY, per);
+    v += this.surflet(x, y, intX + 1, intY, per);
+    v += this.surflet(x, y, intX, intY + 1, per);
+    v += this.surflet(x, y, intX + 1, intY + 1, per);
+    return v;
+};
+
+TileablePerlinNoise.prototype.sumOctaves = function(x, y, nbOctaves, per)
+{
+    let v = 0;
+    let q = 1;
+    for (let i = 0; i < nbOctaves; ++i)
+    {
+        v += (1 / q) * this.noise(x * q, y * q, per * q);
+        q *= 2;
+    }
+
+    return (v + 0.5) / 2;
+};
+
+export { SimplexNoise, TileablePerlinNoise };

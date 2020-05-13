@@ -1,9 +1,9 @@
-import { SimplexNoise } from './simplex';
-import { Random }       from './random';
+import { Random }              from './random';
+import { SimplexNoise, TileablePerlinNoise } from './noise';
 
 let Rasterizer = function()
 {
-    this.dimension = 512;
+    this.dimension = 256;
     this.chunkHeight = 16;
     this.chunkWidth = 16;
     this.biomeDimension = this.dimension / this.chunkHeight;
@@ -37,7 +37,7 @@ Rasterizer.prototype.computeTriMesh = function(
         let v = values[i];
         if (i >= nbInteriorTris)
         {
-            console.log(values[i]);
+            // console.log(values[i]);
         }
         if (t.length !== 3) continue;
         for (let j = 0; j < 3; ++j) {
@@ -188,12 +188,19 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
     }
 };
 
-Rasterizer.prototype.heightPass = function (triMesh)
+Rasterizer.prototype.initBuffers = function(triMesh)
 {
     const width = this.dimension;
     const height =  this.dimension;
     this.heightBuffer = new Int32Array(width * height);
     this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
+};
+
+Rasterizer.prototype.heightPass = function (triMesh)
+{
+    this.initBuffers(triMesh);
+    const width = this.dimension;
+    const height =  this.dimension;
 
     const nbTris = triMesh.length;
     for (let i = 0; i < nbTris; ++i)
@@ -217,10 +224,12 @@ Rasterizer.prototype.heightPass = function (triMesh)
 Rasterizer.prototype.noisePass = function(factor)
 {
     let nng = this.nng;
+    let png = new TileablePerlinNoise();
     let buffer = this.heightBuffer;
     const height = this.dimension;
     const width = this.dimension;
     const f = factor * 64;
+    const freq = 1 / 256;
     for (let y = 0; y <= height; ++y)
     {
         const offset = width * y;
@@ -228,12 +237,13 @@ Rasterizer.prototype.noisePass = function(factor)
         {
             // TODO only if >= water level
             buffer[offset + x] +=
-                (
-                    nng.noise(x / 256, y / 256) +
-                    nng.noise(x / 64, y / 64) +
-                    nng.noise(x / 16, y / 16) +
-                    nng.noise(x / 4, y / 4)
-                ) * f;
+                f * png.sumOctaves(x * freq, y * freq, 10, (width * freq) >> 0);
+                // (
+                //     nng.noise(x / 256, y / 256) +
+                //     nng.noise(x / 64, y / 64) +
+                //     nng.noise(x / 16, y / 16) +
+                //     nng.noise(x / 4, y / 4)
+                // ) * f;
         }
     }
 
