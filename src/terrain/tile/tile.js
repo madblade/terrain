@@ -20,6 +20,9 @@ let Tile = function(
     this.dimension = dimension;
     this.country = country; // contains pre-computed Voronoi in country.mesh
 
+    this.ready = false;
+    this.progress = 0;
+
     // TODO seed
     this.rasterizer = new Rasterizer(this.dimension);
     this.mesher = new Mesher();

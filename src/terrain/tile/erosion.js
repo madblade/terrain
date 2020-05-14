@@ -90,6 +90,7 @@ Eroder.prototype.downfrom = function(mesh, i)
     return best;
 };
 
+// TODO progressive mode
 Eroder.prototype.fillSinks = function(mesh, epsilon)
 {
     const mesher = this.mesher;
@@ -140,6 +141,7 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     }
 }
 
+// TODO progressive mode
 Eroder.prototype.getFlux = function(mesh)
 {
     let dh = this.downhill(mesh);

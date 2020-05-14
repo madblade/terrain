@@ -43,9 +43,9 @@ WorldMap.prototype.genWorld = function()
     {
         setTimeout(() =>{
             this.loadTile(0, 0);
-            this.loadTile(0, 1);
-            this.loadTile(1, 0);
-            this.loadTile(1, 1);
+            // this.loadTile(0, 1);
+            // this.loadTile(1, 0);
+            // this.loadTile(1, 1);
             resolve();
         }, 1);
     })

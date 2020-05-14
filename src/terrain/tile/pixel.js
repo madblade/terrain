@@ -205,6 +205,7 @@ Rasterizer.prototype.initBuffers = function(triMesh)
     this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
 };
 
+// TODO progressive mode
 Rasterizer.prototype.heightPass = function (triMesh)
 {
     this.initBuffers(triMesh);

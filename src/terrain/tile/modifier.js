@@ -94,19 +94,22 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
     }
 
     let newvals = mesh.buffer
-    let vxs = mesh.vxs;
-    let r22 = 2 * r * r;
-    for (let i = 0; i < vxs.length; i++)
+    const vxs = mesh.vxs;
+    const r22 = 1 / (2 * r * r);
+    const vl = vxs.length
+    // TODO optimize by neighborhood
+    for (let i = 0; i < vl; i++)
     {
         let p = vxs[i];
         for (let j = 0; j < n; j++) {
-            let m = mounts[j];
+            const m = mounts[j];
             newvals[i] +=
-                Math.pow(Math.exp(-
+                Math.pow(
+                    Math.exp(-
                         (
                             Math.pow(p[0] - m[0], 2) +
                             Math.pow(p[1] - m[1], 2)
-                        ) / r22),
+                        ) * r22),
                     2
                 );
         }

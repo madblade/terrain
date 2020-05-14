@@ -268,6 +268,7 @@ Mesher.prototype.generateGoodMesh = function(n, extent)
     return this.makeMesh(pts, extent);
 }
 
+// TODO progressive mode
 Mesher.prototype.mergeSegments = function(segs)
 {
     let adj = {};
