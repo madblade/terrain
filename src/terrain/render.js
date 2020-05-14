@@ -1,7 +1,7 @@
 
 import * as d3 from 'd3';
 
-import { Random }           from './random';
+import { Random }           from './tile/random';
 import { max, min }         from './math';
 
 let d3selectAll = d3.selectAll;

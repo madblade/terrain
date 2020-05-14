@@ -1,7 +1,7 @@
 
 // import * as d3           from 'd3';
-import { Random }        from './random';
-import { defaultExtent } from './terrain';
+import { Random }        from './tile/random';
+import { defaultExtent } from './tile/terrain';
 import { voronoi }       from './voronoi';
 
 let d3voronoi = voronoi;

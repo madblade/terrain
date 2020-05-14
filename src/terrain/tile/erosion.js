@@ -1,5 +1,5 @@
 
-import { max }    from './math';
+import { max }    from '../math';
 
 let Eroder = function(
     mesher

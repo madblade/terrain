@@ -1,7 +1,7 @@
 
 import PriorityQueue from 'js-priority-queue';
 
-import { maxArg }        from './math';
+import { maxArg }        from '../math';
 
 let CityPlacer = function(
     mesher, fieldModifier, eroder
@@ -208,6 +208,8 @@ CityPlacer.prototype.relaxPath = function(path)
     newpath.push(path[path.length - 1]);
     return newpath;
 }
+
+// TODO City wards.
 
 export {
     CityPlacer

@@ -3,7 +3,7 @@ import { SimplexNoise, TileablePerlinNoise } from './noise';
 
 let Rasterizer = function()
 {
-    this.dimension = 256;
+    this.dimension = 512;
     this.chunkHeight = 16;
     this.chunkWidth = 16;
     this.biomeDimension = this.dimension / this.chunkHeight;
@@ -12,8 +12,13 @@ let Rasterizer = function()
     this.chunkBiomes = [];
     this.surfaceBuffer = [];
 
+    this.noiseTile = [];
+    this.noiseTileDimension = 256;
+    this.noiseTileReady = false;
+
     this.rng = new Random('simplex')
-    this.nng = new SimplexNoise(this.rng);
+    this.sng = new SimplexNoise(this.rng);
+    this.tpng = new TileablePerlinNoise(this.rng);
 };
 
 Rasterizer.prototype.computeTriMesh = function(
@@ -221,29 +226,67 @@ Rasterizer.prototype.heightPass = function (triMesh)
     }
 }
 
-Rasterizer.prototype.noisePass = function(factor)
+Rasterizer.prototype.precomputeNoiseTile = function(nbOctaves)
 {
-    let nng = this.nng;
-    let png = new TileablePerlinNoise();
-    let buffer = this.heightBuffer;
-    const height = this.dimension;
-    const width = this.dimension;
-    const f = factor * 64;
+    // Noise tile = 256
+    const height = this.noiseTileDimension;
+    const width = this.noiseTileDimension;
+    let tpng = this.tpng;
+    this.noiseTile = new Float32Array(width * height);
+    let buffer = this.noiseTile;
+
     const freq = 1 / 256;
-    for (let y = 0; y <= height; ++y)
+    const wf = (width * freq) >> 0;
+
+    for (let y = 0; y < height; ++y)
     {
         const offset = width * y;
-        for (let x = 0; x <= width; ++x)
+        for (let x = 0; x < width; ++x)
+        {
+            buffer[offset + x] = tpng.sumOctaves(x * freq, y * freq, nbOctaves, wf)
+        }
+    }
+
+    // Normalize
+    let min = Infinity; let max = -Infinity;
+    for (let i = 0; i < buffer.length; ++i) {
+        let bi = buffer[i];
+        if (bi > max) max = bi;
+        if (bi < min) min = bi;
+    }
+
+    const range = max - min;
+    for (let i = 0; i < buffer.length; ++i) {
+        buffer[i] = (buffer[i] - min) / range;
+    }
+
+    this.noiseTileReady = true;
+}
+
+Rasterizer.prototype.noisePass = function(factor)
+{
+    if (!this.noiseTileReady) {
+        this.precomputeNoiseTile(5);
+    }
+
+    if (this.dimension % this.noiseTileDimension !== 0)
+    {
+        throw Error('Map dimension must be a multiple of the noise kernel dimension.');
+    }
+
+    let buffer = this.heightBuffer; let pattern = this.noiseTile;
+    const height = this.dimension; const heightN = this.noiseTileDimension;
+    const width = this.dimension; const widthN = this.noiseTileDimension;
+
+    for (let y = 0; y < height; ++y)
+    {
+        const offset = width * y;
+        const offsetNoise = widthN * (y % heightN);
+        for (let x = 0; x < width; ++x)
         {
             // TODO only if >= water level
-            buffer[offset + x] +=
-                f * png.sumOctaves(x * freq, y * freq, 10, (width * freq) >> 0);
-                // (
-                //     nng.noise(x / 256, y / 256) +
-                //     nng.noise(x / 64, y / 64) +
-                //     nng.noise(x / 16, y / 16) +
-                //     nng.noise(x / 4, y / 4)
-                // ) * f;
+            if (buffer[offset + x] < 0) continue;
+            buffer[offset + x] -= factor * pattern[offsetNoise + (x % widthN)];
         }
     }
 
@@ -277,7 +320,7 @@ Rasterizer.prototype.riverPass = function(rivers)
             // let pixelA2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
             // let pixelB2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
             // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };j
-            // TODO other triangle
+            // TODO other triangle + other triangle + cross product
             this.drawTriangle(
                 [pixelA1.x, pixelA1.y, pixelA1.z],
                 [pixelB1.x, pixelB1.y, pixelB1.z],

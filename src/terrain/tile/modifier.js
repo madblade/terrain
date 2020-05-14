@@ -1,6 +1,6 @@
 
 import { Random }                   from './random';
-import { max, mean, min, quantile2 } from './math';
+import { max, mean, min, quantile2 } from '../math';
 
 let FieldModifier = function(
     mesher

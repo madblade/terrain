@@ -12,13 +12,13 @@ import {
     WebGLRenderer
 }                                          from 'three';
 import { Mesher }                          from './terrain/mesh';
-import { FieldModifier }                   from './terrain/modifier';
-import { Eroder }                          from './terrain/erosion';
-import { CityPlacer }                      from './terrain/cities';
-import { defaultParams, TerrainGenerator } from './terrain/terrain';
+import { FieldModifier }                   from './terrain/tile/modifier';
+import { Eroder }                          from './terrain/tile/erosion';
+import { CityPlacer }                      from './terrain/tile/cities';
+import { defaultParams, TerrainGenerator } from './terrain/tile/terrain';
+import { Rasterizer }                      from './terrain/tile/pixel';
 import { LanguageGenerator }               from './language';
 import { NameGiver }                       from './terrain/names';
-import { Rasterizer }                      from './terrain/pixel';
 import { OrbitControls }                   from 'three/examples/jsm/controls/OrbitControls';
 import * as d3                             from 'd3';
 import { SVGDrawer }                       from './terrain/render';
@@ -50,13 +50,12 @@ function init3D()
     let rasterizer = new Rasterizer();
     let triMesh = //[];
         rasterizer.computeTriMesh(country.mesh);
-    // rasterizer.heightPass(triMesh);
     rasterizer.initBuffers(triMesh);
+    rasterizer.heightPass(triMesh);
     rasterizer.noisePass(5.0);
-    console.log('/noise');
     console.log(rasterizer.heightBuffer);
-    // rasterizer.riverPass(country.rivers);
-    // rasterizer.cityPass(country.mesh, country.cities);
+    rasterizer.riverPass(country.rivers);
+    rasterizer.cityPass(country.mesh, country.cities);
 
     // let finalDiv = d3select("div#fin");
     // let finalSVG = svgDrawer.addSVG(finalDiv);

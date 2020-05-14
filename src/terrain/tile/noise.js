@@ -9,7 +9,6 @@
 
 let SimplexNoise = function (r)
 {
-
     if (r === undefined) r = Math;
 
     this.grad3 = [[1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
@@ -230,10 +229,8 @@ SimplexNoise.prototype.noise3d = function (xin, yin, zin)
     let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
     if (t1 < 0) n1 = 0.0;
     else {
-
         t1 *= t1;
         n1 = t1 * t1 * this.dot3(this.grad3[gi1], x1, y1, z1);
-
     }
 
     let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
@@ -302,14 +299,14 @@ TileablePerlinNoise.prototype.noise = function(x, y, per)
 TileablePerlinNoise.prototype.sumOctaves = function(x, y, nbOctaves, per)
 {
     let v = 0;
-    let q = 1;
+    let q = 32;
     for (let i = 0; i < nbOctaves; ++i)
     {
         v += (1 / q) * this.noise(x * q, y * q, per * q);
         q *= 2;
     }
 
-    return (v + 0.5) / 2;
+    return v;
 };
 
 export { SimplexNoise, TileablePerlinNoise };

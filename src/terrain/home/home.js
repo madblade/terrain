@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import {
     defaultExtent,
     defaultParams, TerrainGenerator,
-} from '../terrain';
+} from '../tile/terrain';
 import { SVGDrawer }         from '../render';
 import { max }               from '../math';
 
