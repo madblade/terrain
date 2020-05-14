@@ -8,7 +8,7 @@ import { defaultParams } from './tile/terrain';
 let WorldMap = function()
 {
     this.tiles = new Map();
-    this.tileDimension = 2048;
+    this.tileDimension = 512;
 
     this.mesher = new Mesher();
     this.mesh = null;
@@ -30,7 +30,7 @@ WorldMap.prototype.loadTile = function(i, j)
         params: defaultParams,
         mesh: this.mesh
     };
-    let t = new Tile(i, j, this.tileDimension);
+    let t = new Tile(i, j, this.tileDimension, c);
     t.processHeightMap();
     t.placeObjects();
     t.renderToRaster();

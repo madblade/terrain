@@ -1,9 +1,9 @@
 import { Random }              from './random';
 import { SimplexNoise, TileablePerlinNoise } from './noise';
 
-let Rasterizer = function()
+let Rasterizer = function(dimension)
 {
-    this.dimension = 512;
+    this.dimension = dimension || 512;
     this.chunkHeight = 16;
     this.chunkWidth = 16;
     this.biomeDimension = this.dimension / this.chunkHeight;

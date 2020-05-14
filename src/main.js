@@ -22,7 +22,7 @@ import { NameGiver }                       from './terrain/names';
 import { OrbitControls }                   from 'three/examples/jsm/controls/OrbitControls';
 import * as d3                             from 'd3';
 import { SVGDrawer }                       from './terrain/render';
-import { y }                               from './terrain/voronoi/point';
+import { WorldMap }                        from './terrain/world';
 
 
 let mesher = new Mesher();
@@ -39,42 +39,6 @@ let svgDrawer = new SVGDrawer(mesher, eroder, terrainGenerator, cityPlacer, name
 
 function init3D()
 {
-    let country = { params: defaultParams };
-    country.mesh = terrainGenerator.generateCoast(defaultParams);
-    cityPlacer.placeCities(country);
-    country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
-    country.coasts = mesher.contour(country.mesh, 0);
-    country.terr = cityPlacer.getTerritories(country);
-    country.borders = cityPlacer.getBorders(country);
-
-    console.log(country.cities);
-    let rasterizer = new Rasterizer();
-    let triMesh = //[];
-        rasterizer.computeTriMesh(country.mesh);
-    rasterizer.initBuffers(triMesh);
-    rasterizer.heightPass(triMesh);
-    rasterizer.noisePass(5.0);
-    console.log(rasterizer.heightBuffer);
-    rasterizer.riverPass(country.rivers);
-    rasterizer.cityPass(country.mesh, country.cities);
-
-    // let finalDiv = d3select("div#fin");
-    // let finalSVG = svgDrawer.addSVG(finalDiv);
-    // svgDrawer.drawMap(finalSVG, country);
-    const width = rasterizer.dimension;
-    const height = rasterizer.dimension;
-    let buffer = makeImageBufferFromRaster(rasterizer);
-
-    let canvas = document.createElement('canvas');
-    let ctx = canvas.getContext('2d');
-    canvas.width = width;
-    canvas.height = height;
-    let iData = ctx.createImageData(width, height);
-    iData.data.set(buffer);
-    ctx.putImageData(iData, 0, 0);
-    let image = document.getElementById('gen-image');
-    image.src = canvas.toDataURL();
-
     let container = document.getElementById('gl');
     const dpr = window.devicePixelRatio
     let w = container.clientWidth * dpr;
@@ -85,8 +49,6 @@ function init3D()
     renderer.setSize(w, h);
     container.appendChild(renderer.domElement);
 
-    addThreeMesh(scene, country, triMesh, width, height, buffer);
-
     //
     let li = new DirectionalLight(0xffffff, 2);
     li.position.set(1, -1, 2);
@@ -96,6 +58,53 @@ function init3D()
     let oc = new OrbitControls(camera, container);
     // oc.enableRotate = false;
     // oc.screenSpacePanning = true;
+
+    let world = new WorldMap();
+    world.seedWorld();
+    world.genWorld();
+    world.getTiles();
+    let tiles = world.getTiles();
+    tiles.forEach(tile =>
+    {
+        // let country = { params: defaultParams };
+        // country.mesh = terrainGenerator.generateCoast(defaultParams);
+        // cityPlacer.placeCities(country);
+        // country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
+        // country.coasts = mesher.contour(country.mesh, 0);
+        // country.terr = cityPlacer.getTerritories(country);
+        // country.borders = cityPlacer.getBorders(country);
+
+        // console.log(country.cities);
+        // let rasterizer = new Rasterizer();
+        // let triMesh = rasterizer.computeTriMesh(country.mesh);
+        // rasterizer.initBuffers(triMesh);
+        // rasterizer.heightPass(triMesh);
+        // rasterizer.noisePass(5.0);
+        // console.log(rasterizer.heightBuffer);
+        // rasterizer.riverPass(country.rivers);
+        // rasterizer.cityPass(country.mesh, country.cities);
+
+        let country = tile.getCountry();
+        let raster = tile.getRaster();
+        let triMesh = tile.triMesh;
+
+        const width = tile.dimension;
+        const height = tile.dimension;
+        let buffer = makeImageBufferFromRaster(tile, raster);
+
+        // svg image
+        // makeSVG(country);
+
+        // raster image
+        makeImage(width, height, buffer);
+
+        // three mesh + texture
+        let cx = tile.coordX;
+        let cy = tile.coordY;
+        addThreeMesh(scene, country, triMesh, width, height, buffer, cx, cy);
+    });
+
+
     let animate = function ()
     {
         requestAnimationFrame(animate);
@@ -104,13 +113,33 @@ function init3D()
     animate();
 }
 
+function makeSVG(country)
+{
+    let finalDiv = d3select("div#fin");
+    let finalSVG = svgDrawer.addSVG(finalDiv);
+    svgDrawer.drawMap(finalSVG, country);
+}
+
+function makeImage(width, height, buffer)
+{
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+    let iData = ctx.createImageData(width, height);
+    iData.data.set(buffer);
+    ctx.putImageData(iData, 0, 0);
+    let image = document.getElementById('gen-image');
+    image.src = canvas.toDataURL();
+}
+
 function makeImageBufferFromRaster(
-    rasterizer
+    tile, heightBuffer
 )
 {
-    const width = rasterizer.dimension;
-    const height = rasterizer.dimension;
-    let rb = rasterizer.heightBuffer;
+    const width = tile.dimension;
+    const height = tile.dimension;
+    let rb = heightBuffer;
     let buffer = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < height; ++i) for (let j = 0; j < width; ++j)
     {
@@ -131,8 +160,13 @@ function addThreeMesh(
     scene,
     country, triMesh,
     rasterWidth, rasterHeight,
-    buffer)
+    buffer, cx, cy)
 {
+    function place(o) {
+        o.position.x = cx;
+        o.position.y = cy;
+    }
+
     // Rivers
     let rivers = [...country.coasts, ...country.rivers];
     for (let i = 0; i < rivers.length; ++i) {
@@ -145,6 +179,7 @@ function addThreeMesh(
         }
         let g = new BufferGeometry().setFromPoints(pts);
         let l = new Line(g, m);
+        place(l);
         scene.add(l);
     }
 
@@ -177,6 +212,7 @@ function addThreeMesh(
         }
     );
     let cube = new Mesh(geometry, material);
+    place(cube);
     scene.add(cube);
 
     let dataTexture = new DataTexture(buffer, rasterWidth, rasterHeight, RGBAFormat);
@@ -190,6 +226,7 @@ function addThreeMesh(
     );
     p.scale.y = -1;
     p.position.set(0, 0, 0);
+    place(p);
     scene.add(p);
 }
 

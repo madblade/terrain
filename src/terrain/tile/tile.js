@@ -21,7 +21,7 @@ let Tile = function(
     this.country = country; // contains pre-computed Voronoi in country.mesh
 
     // TODO seed
-    this.rasterizer = new Rasterizer();
+    this.rasterizer = new Rasterizer(this.dimension);
     this.mesher = new Mesher();
     this.fieldModifier = new FieldModifier(this.mesher);
     this.eroder = new Eroder(this.mesher);

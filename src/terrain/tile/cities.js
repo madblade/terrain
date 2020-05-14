@@ -10,6 +10,7 @@ let CityPlacer = function(
     if (!mesher || !fieldModifier || !eroder) throw Error('Invalid argument');
 
     this.buffer = [];
+    this.fluxBuffer = [];
 
     this.mesher = mesher;
     this.fieldModifier = fieldModifier;
@@ -20,8 +21,24 @@ CityPlacer.prototype.resetBuffer = function(newBufferLength)
 {
     if (this.buffer.length !== newBufferLength)
         this.buffer = new Float64Array(newBufferLength);
-    else
-        this.buffer.fill(0);
+    else this.buffer.fill(0);
+};
+
+CityPlacer.prototype.resetFluxBuffer = function(newBufferLength)
+{
+    if (this.fluxBuffer.length !== newBufferLength)
+        this.fluxBuffer = new Float64Array(newBufferLength);
+    else this.fluxBuffer.fill(0);
+};
+
+CityPlacer.prototype.copyBuffer = function(source, destination)
+{
+    if (source.length !== destination.length) throw Error('[CityPlacer] Invalid buffer lengths.');
+    const l = source.length;
+    for (let i = 0; i < l; ++i)
+    {
+        destination[i] = source[i];
+    }
 };
 
 CityPlacer.prototype.swapBuffers = function(otherObject)
@@ -40,9 +57,17 @@ CityPlacer.prototype.cityScore = function(mesh, cities)
     let h = mesh.buffer;
 
     this.resetBuffer(h.length);
-    let oldBuffer = this.buffer;
-    this.buffer = eroder.getFlux(mesh); // swap
-    eroder.fluxBuffer = oldBuffer;
+    if (this.fluxBuffer.length !== h.length) {
+        this.resetFluxBuffer(h.length);
+        let oldFlux = this.fluxBuffer;
+        this.fluxBuffer = eroder.getFlux(mesh);
+        eroder.fluxBuffer = oldFlux;
+    }
+
+    this.copyBuffer(this.fluxBuffer, this.buffer);
+    // let oldBuffer = this.buffer;
+    // this.buffer = eroder.getFlux(mesh); // swap
+    // eroder.fluxBuffer = oldBuffer;
     fieldModifier.apply1D(this, Math.sqrt);
 
     // let score = applyTransform(getFlux(h), Math.sqrt);
