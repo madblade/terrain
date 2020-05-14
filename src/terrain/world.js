@@ -11,7 +11,7 @@ let WorldMap = function()
 
 WorldMap.prototype.seedWorld = function(seed)
 {
-    // Init generators and buffers.
+    // Init generators, voronoi and buffers.
 };
 
 WorldMap.prototype.loadTile = function(i, j)

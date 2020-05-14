@@ -208,7 +208,7 @@ Mesher.prototype.makeMesh = function(pts, extent)
     p1 = [topLeft[0], topLeft[1]]; p2 = [topLeft[0], h]; p3 = [-w, topLeft[1]]; p4 = [-w, h];
     makeTris(p1, p2, p3, p4);
 
-    // TODO point indexes
+    // Pre-compute tri indexes
     let z = new Map();
     let idx = 0;
     let tidx = [];

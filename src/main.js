@@ -2,15 +2,15 @@ import './style.css';
 
 import { init }              from './terrain/home/home';
 import {
-    BufferAttribute, BufferGeometry,
+    BufferAttribute, BufferGeometry, DataTexture,
     DirectionalLight, DoubleSide,
     Line, LineBasicMaterial,
     Mesh,
     MeshBasicMaterial, MeshPhongMaterial, OrthographicCamera,
-    PerspectiveCamera, PlaneBufferGeometry,
+    PerspectiveCamera, PlaneBufferGeometry, RGBAFormat, RGBFormat,
     Scene, Vector3,
     WebGLRenderer
-}                                          from 'three';
+} from 'three';
 import { Mesher }                          from './terrain/mesh';
 import { FieldModifier }                   from './terrain/tile/modifier';
 import { Eroder }                          from './terrain/tile/erosion';
@@ -141,12 +141,16 @@ function init3D()
     let cube = new Mesh(geometry, material);
     scene.add(cube);
 
+    let dataTexture = new DataTexture(buffer, width, height, RGBAFormat);
     let p = new Mesh(
-        new PlaneBufferGeometry(2, 2),
+        new PlaneBufferGeometry(1, 1),
         new MeshBasicMaterial({
-            color: 0x0000ff, transparent: true, opacity: 0.5
+            // color: 0x0000ff,
+            transparent: true, opacity: 0.5,
+            map: dataTexture
         })
     );
+    p.scale.y = -1;
     p.position.set(0, 0, 0);
     scene.add(p);
 
@@ -156,8 +160,8 @@ function init3D()
     camera.position.z = 1;
 
     let oc = new OrbitControls(camera, container);
-    oc.enableRotate = false;
-    oc.screenSpacePanning = true;
+    // oc.enableRotate = false;
+    // oc.screenSpacePanning = true;
     let animate = function ()
     {
         requestAnimationFrame(animate);
