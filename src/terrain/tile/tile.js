@@ -97,4 +97,15 @@ Tile.prototype.getCountry = function()
     return this.country;
 };
 
+Tile.prototype.pack = function()
+{
+    return {
+        country: this.getCountry(),
+        raster: this.getRaster(),
+        triMesh: this.triMesh,
+        x: this.coordX,
+        y: this.coordY
+    }
+}
+
 export { Tile }

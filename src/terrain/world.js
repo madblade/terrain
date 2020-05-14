@@ -39,10 +39,16 @@ WorldMap.prototype.loadTile = function(i, j)
 
 WorldMap.prototype.genWorld = function()
 {
-    this.loadTile(0, 0);
-    this.loadTile(0, 1);
-    this.loadTile(1, 0);
-    this.loadTile(1, 1);
+    return new Promise(resolve =>
+    {
+        setTimeout(() =>{
+            this.loadTile(0, 0);
+            this.loadTile(0, 1);
+            this.loadTile(1, 0);
+            this.loadTile(1, 1);
+            resolve();
+        }, 1);
+    })
 };
 
 WorldMap.prototype.getTiles = function ()

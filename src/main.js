@@ -2,6 +2,7 @@ import './style.css';
 
 import { init }              from './terrain/home/home';
 import {
+    BoxBufferGeometry,
     BufferAttribute, BufferGeometry, DataTexture,
     DirectionalLight, DoubleSide,
     Line, LineBasicMaterial,
@@ -59,58 +60,37 @@ function init3D()
     // oc.enableRotate = false;
     // oc.screenSpacePanning = true;
 
-    let world = new WorldMap();
-    world.seedWorld();
-    world.genWorld();
-    world.getTiles();
-    let tiles = world.getTiles();
-    tiles.forEach(tile =>
-    {
-        // let country = { params: defaultParams };
-        // country.mesh = terrainGenerator.generateCoast(defaultParams);
-        // cityPlacer.placeCities(country);
-        // country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
-        // country.coasts = mesher.contour(country.mesh, 0);
-        // country.terr = cityPlacer.getTerritories(country);
-        // country.borders = cityPlacer.getBorders(country);
-
-        // console.log(country.cities);
-        // let rasterizer = new Rasterizer();
-        // let triMesh = rasterizer.computeTriMesh(country.mesh);
-        // rasterizer.initBuffers(triMesh);
-        // rasterizer.heightPass(triMesh);
-        // rasterizer.noisePass(5.0);
-        // console.log(rasterizer.heightBuffer);
-        // rasterizer.riverPass(country.rivers);
-        // rasterizer.cityPass(country.mesh, country.cities);
-
-        let country = tile.getCountry();
-        let raster = tile.getRaster();
-        let triMesh = tile.triMesh;
-
-        const width = tile.dimension;
-        const height = tile.dimension;
-        let buffer = makeImageBufferFromRaster(tile, raster);
-
-        // svg image
-        // makeSVG(country);
-
-        // raster image
-        makeImage(width, height, buffer);
-
-        // three mesh + texture
-        let cx = tile.coordX;
-        let cy = tile.coordY;
-        addThreeMesh(scene, country, triMesh, width, height, buffer, cx, cy);
-    });
-
-
-    let animate = function ()
-    {
+    let animate = function() {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
     };
     animate();
+
+    let world = new WorldMap();
+    world.seedWorld();
+    world.genWorld().then(() =>
+        world.tiles.forEach(tile =>
+        {
+            let country = tile.getCountry();
+            let raster = tile.getRaster();
+            let triMesh = tile.triMesh;
+
+            const width = tile.dimension;
+            const height = tile.dimension;
+            let buffer = makeImageBufferFromRaster(tile, raster);
+
+            // svg image
+            // makeSVG(country);
+
+            // raster image
+            // makeImage(width, height, buffer);
+
+            // three mesh + texture
+            let cx = tile.coordX;
+            let cy = tile.coordY;
+            addThreeMesh(scene, country, triMesh, width, height, buffer, cx, cy);
+        })
+    );
 }
 
 function makeSVG(country)

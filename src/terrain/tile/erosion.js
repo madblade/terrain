@@ -78,10 +78,13 @@ Eroder.prototype.downfrom = function(mesh, i)
     let best = -1;
     let besth = h[i];
     let nbs = mesher.neighbours(mesh, i);
-    for (let j = 0; j < nbs.length; j++) {
-        if (h[nbs[j]] < besth) {
-            besth = h[nbs[j]];
-            best = nbs[j];
+    for (let j = 0, l = nbs.length; j < l; j++)
+    {
+        const b = nbs[j];
+        const hb = h[b];
+        if (hb < besth) {
+            besth = hb;
+            best = b;
         }
     }
     return best;
@@ -95,9 +98,10 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     epsilon = epsilon || 1e-5;
     let infinity = 999999;
 
-    this.resetBuffer(h.length);
+    const hl = h.length;
+    this.resetBuffer(hl);
     let newh = this.buffer;
-    for (let i = 0; i < h.length; i++)
+    for (let i = 0; i < hl; i++)
     {
         if (mesher.isnearedge(mesh, i)) {
             newh[i] = h[i];
@@ -106,11 +110,12 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
         }
     }
 
+    let changed = false;
+    let oh;
     while (true)
     {
-        let changed = false;
-        let oh;
-        for (let i = 0; i < h.length; i++)
+        changed = false;
+        for (let i = 0; i < hl; i++)
         {
             if (newh[i] === h[i]) continue;
             let nbs = mesher.neighbours(mesh, i);
@@ -145,17 +150,20 @@ Eroder.prototype.getFlux = function(mesh)
     let flux = this.fluxBuffer;
     let h = mesh.buffer;
 
-    for (let i = 0; i < h.length; i++) {
+    const hl = h.length;
+    const hlInv = 1 / hl;
+    for (let i = 0; i < hl; i++) {
         idxs[i] = i;
-        flux[i] = 1 / h.length;
+        flux[i] = hlInv;
     }
     idxs.sort(function (a, b) {
         return h[b] - h[a];
     });
-    for (let i = 0; i < h.length; i++) {
-        let j = idxs[i];
-        if (dh[j] >= 0) {
-            flux[dh[j]] += flux[j];
+    for (let i = 0; i < hl; i++) {
+        const j = idxs[i];
+        const dhj = dh[j];
+        if (dhj >= 0) {
+            flux[dhj] += flux[j];
         }
     }
 
