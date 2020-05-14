@@ -324,7 +324,7 @@ Rasterizer.prototype.riverPass = function(rivers)
             // let pixelA2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
             // let pixelB2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
             // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };j
-            // TODO other triangle + other triangle + cross product
+            // TODO other triangle + other rectangle + cross product
             this.drawTriangle(
                 [pixelA1.x, pixelA1.y, pixelA1.z],
                 [pixelB1.x, pixelB1.y, pixelB1.z],

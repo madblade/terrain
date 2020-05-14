@@ -22,6 +22,7 @@ import { NameGiver }                       from './terrain/names';
 import { OrbitControls }                   from 'three/examples/jsm/controls/OrbitControls';
 import * as d3                             from 'd3';
 import { SVGDrawer }                       from './terrain/render';
+import { y }                               from './terrain/voronoi/point';
 
 
 let mesher = new Mesher();
@@ -60,22 +61,10 @@ function init3D()
     // let finalDiv = d3select("div#fin");
     // let finalSVG = svgDrawer.addSVG(finalDiv);
     // svgDrawer.drawMap(finalSVG, country);
-
     const width = rasterizer.dimension;
     const height = rasterizer.dimension;
-    let rb = rasterizer.heightBuffer;
-    let buffer = new Uint8ClampedArray(width * height * 4);
-    for (let i = 0; i < height; ++i) for (let j = 0; j < width; ++j)
-    {
-        let s = i * width + j;
-        let stride = s * 4;
-        let si = (width - i - 1) * width + j;
-        let v = rb[si] >> 0;
-        buffer[stride    ] = v > 0 ? v : 0;
-        buffer[stride + 1] = v > 0 ? v : 0;
-        buffer[stride + 2] = v > 0 ? v : 255;
-        buffer[stride + 3] = 255;
-    }
+    let buffer = makeImageBufferFromRaster(rasterizer);
+
     let canvas = document.createElement('canvas');
     let ctx = canvas.getContext('2d');
     canvas.width = width;
@@ -96,6 +85,54 @@ function init3D()
     renderer.setSize(w, h);
     container.appendChild(renderer.domElement);
 
+    addThreeMesh(scene, country, triMesh, width, height, buffer);
+
+    //
+    let li = new DirectionalLight(0xffffff, 2);
+    li.position.set(1, -1, 2);
+    scene.add(li);
+    camera.position.z = 1;
+
+    let oc = new OrbitControls(camera, container);
+    // oc.enableRotate = false;
+    // oc.screenSpacePanning = true;
+    let animate = function ()
+    {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    };
+    animate();
+}
+
+function makeImageBufferFromRaster(
+    rasterizer
+)
+{
+    const width = rasterizer.dimension;
+    const height = rasterizer.dimension;
+    let rb = rasterizer.heightBuffer;
+    let buffer = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < height; ++i) for (let j = 0; j < width; ++j)
+    {
+        let s = i * width + j;
+        let stride = s * 4;
+        let si = (width - i - 1) * width + j;
+        let v = rb[si] >> 0;
+        buffer[stride    ] = v > 0 ? v : 0;
+        buffer[stride + 1] = v > 0 ? v : 0;
+        buffer[stride + 2] = v > 0 ? v : 255;
+        buffer[stride + 3] = 255;
+    }
+
+    return buffer;
+}
+
+function addThreeMesh(
+    scene,
+    country, triMesh,
+    rasterWidth, rasterHeight,
+    buffer)
+{
     // Rivers
     let rivers = [...country.coasts, ...country.rivers];
     for (let i = 0; i < rivers.length; ++i) {
@@ -128,6 +165,7 @@ function init3D()
         positions[9 * i + 7] = ti[2][1];
         positions[9 * i + 8] = ti[2][2] / 4;
     }
+
     let positionAttribute = new BufferAttribute(positions, 3);
     geometry.setAttribute('position', positionAttribute);
     geometry.computeVertexNormals();
@@ -141,7 +179,7 @@ function init3D()
     let cube = new Mesh(geometry, material);
     scene.add(cube);
 
-    let dataTexture = new DataTexture(buffer, width, height, RGBAFormat);
+    let dataTexture = new DataTexture(buffer, rasterWidth, rasterHeight, RGBAFormat);
     let p = new Mesh(
         new PlaneBufferGeometry(1, 1),
         new MeshBasicMaterial({
@@ -153,21 +191,6 @@ function init3D()
     p.scale.y = -1;
     p.position.set(0, 0, 0);
     scene.add(p);
-
-    let li = new DirectionalLight(0xffffff, 2);
-    li.position.set(1, -1, 2);
-    scene.add(li);
-    camera.position.z = 1;
-
-    let oc = new OrbitControls(camera, container);
-    // oc.enableRotate = false;
-    // oc.screenSpacePanning = true;
-    let animate = function ()
-    {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    };
-    animate();
 }
 
 // init(
