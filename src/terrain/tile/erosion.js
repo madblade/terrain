@@ -7,6 +7,7 @@ let Eroder = function(
 {
     if (!mesher) throw Error('Invalid argument');
 
+    this._indexBuffer = [];
     this.buffer = [];
     this.fluxBuffer = [];
     this.slopeBuffer = [];
@@ -40,7 +41,7 @@ Eroder.prototype.resetFluxBuffer = function(newBufferLength)
 Eroder.prototype.resetIndexBuffer = function(newBufferLength)
 {
     if (this.indexBuffer.length !== newBufferLength)
-        this.indexBuffer = new Uint32Array(newBufferLength);
+        this.indexBuffer = new Float64Array(newBufferLength);
     else this.indexBuffer.fill(0);
 }
 
@@ -96,46 +97,69 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     const mesher = this.mesher;
 
     let h = mesh.buffer;
-    epsilon = epsilon || 1e-5;
+    epsilon = epsilon || 1e-6;
     let infinity = 999999;
 
     const hl = h.length;
     this.resetBuffer(hl);
     let newh = this.buffer;
-    for (let i = 0; i < hl; i++)
+    for (let i = 0; i < hl; ++i)
     {
         if (mesher.isnearedge(mesh, i)) {
             newh[i] = h[i];
         } else {
-            newh[i] = infinity;
+            newh[i] = Infinity;
         }
     }
 
+    // Reduce iteration number (not worth it)
+    // let hh = this._indexBuffer;
+    // if (hh.length < hl) {
+    //     this._indexBuffer = new Float64Array(hl);
+    //     hh = this._indexBuffer;
+    // }
+    // for (let i = 0; i < hl; ++i)
+    //     hh[i] = Math.floor((1 + h[i]) * 10000000000) * 100000 + i;
+    // hh.sort();
+    // for (let i = 0; i < hl; ++i) hh[i] %= 100000;
+
+    // TODO topological flood.
     let changed = false;
     let oh;
+    let iterations = 0;
     while (true)
     {
+        ++iterations;
         changed = false;
-        for (let i = 0; i < hl; i++)
+        // for (let ii = hl - 1; ii >= 0; --ii)
+        for (let ii = 0; ii < hl; ++ii)
         {
-            if (newh[i] === h[i]) continue;
+            // const i = hh[hl - ii - 1];
+            const i = ii;
+            const hi = h[i];
+            if (newh[i] === hi) continue;
             let nbs = mesher.neighbours(mesh, i);
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[i] >= newh[nbs[j]] + epsilon) {
-                    newh[i] = h[i];
+            const nbl = nbs.length;
+            for (let j = 0; j < nbl; j++)
+            {
+                oh = newh[nbs[j]] + epsilon;
+                if (hi >= oh) {
+                    newh[i] = hi;
                     changed = true;
                     break;
                 }
-                oh = newh[nbs[j]] + epsilon;
-                if ((newh[i] > oh) && (oh > h[i])) {
+                else if (newh[i] > oh)
+                {
                     newh[i] = oh;
                     changed = true;
                 }
             }
         }
+
         if (!changed)
         {
             this.swapBuffers(mesh);
+            console.log(`${iterations} iterations`);
             return;
         }
     }
@@ -154,15 +178,21 @@ Eroder.prototype.getFlux = function(mesh)
 
     const hl = h.length;
     const hlInv = 1 / hl;
-    for (let i = 0; i < hl; i++) {
-        idxs[i] = i;
+    for (let i = 0; i < hl; ++i) {
+        // idxs[i] = i;
+        idxs[i] = Math.floor((1 + h[i]) * 10000000000) * 100000 + i;
         flux[i] = hlInv;
     }
-    idxs.sort(function (a, b) {
-        return h[b] - h[a];
-    });
+    idxs.sort();
+    for (let i = 0; i < hl; ++i)
+        idxs[i] %= 100000;
+    // idxs.sort((a, b) => {
+    //     return h[b] - h[a];
+    // });
+
     for (let i = 0; i < hl; i++) {
-        const j = idxs[i];
+        // const j = idxs[i];
+        const j = idxs[hl - 1 - i];
         const dhj = dh[j];
         if (dhj >= 0) {
             flux[dhj] += flux[j];
