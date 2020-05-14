@@ -208,6 +208,33 @@ Mesher.prototype.makeMesh = function(pts, extent)
     p1 = [topLeft[0], topLeft[1]]; p2 = [topLeft[0], h]; p3 = [-w, topLeft[1]]; p4 = [-w, h];
     makeTris(p1, p2, p3, p4);
 
+    // TODO point indexes
+    let z = new Map();
+    let idx = 0;
+    let tidx = [];
+    for (let i = 0; i < tris.length; ++i) {
+        let t = tris[i];
+        let ctidx = [];
+        if (t.length === 3) {
+            for (let j = 0; j < 3; ++j) {
+                let p = t[j];
+                let index = `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
+                let oi = z.get(index);
+                if (oi !== undefined)
+                {
+                    ctidx.push(oi)
+                }
+                else
+                {
+                    ctidx.push(idx);
+                    z.set(index, idx);
+                    idx++;
+                }
+            }
+        }
+        tidx.push(ctidx);
+    }
+
     let mesh = {
         vor: vor,
 
@@ -218,6 +245,8 @@ Mesher.prototype.makeMesh = function(pts, extent)
         vxs: vxs,
         adj: adj,
         tris: tris,
+        triPointIndexes: tidx,
+        nbTriPointIndexes: idx,
         nbInteriorTris: borderStart,
     }
 

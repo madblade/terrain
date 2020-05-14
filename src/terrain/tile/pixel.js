@@ -27,12 +27,13 @@ Rasterizer.prototype.computeTriMesh = function(
 {
     let pts = mesh.pts;
     let tris = mesh.tris;
+    let tidx = mesh.triPointIndexes;
     let values = mesh.buffer;
     let nbInteriorTris = mesh.nbInteriorTris;
 
     let triMesh = [];
-    let z = new Map();
-    let zPass = new Map();
+    let z = new Float64Array(mesh.nbTriPointIndexes);
+    let zPass = new Uint8Array(mesh.nbTriPointIndexes);
 
     // Compute point heights
     for (let i = 0; i < tris.length; ++i)
@@ -45,21 +46,22 @@ Rasterizer.prototype.computeTriMesh = function(
             // console.log(values[i]);
         }
         if (t.length !== 3) continue;
+        const ti = tidx[i];
         for (let j = 0; j < 3; ++j) {
+            const index = ti[j];
             let p = t[j];
-            let index = `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
-            if (!z.has(index))
+            if (!z[index])
             {
-                z.set(index, v);
-                zPass.set(index, 1);
+                z[index] = v;
+                zPass[index] = 1;
             } else {
-                let ov = z.get(index);
+                let ov = z[index];
                 if (Math.sign(v) !== Math.sign(ov)) {
-                    z.set(index, Math.min(ov, v));
-                    zPass.set(index, 1);
+                    z[index] = Math.min(ov, v);
+                    zPass[index] = 1;
                 } else {
-                    z.set(index, ov + v);
-                    zPass.set(index, zPass.get(index) + 1);
+                    z[index] = ov + v;
+                    zPass[index] += 1;
                 }
             }
             z[index] += v;
@@ -79,14 +81,16 @@ Rasterizer.prototype.computeTriMesh = function(
     {
         let t = tris[i];
         if (t.length !== 3) continue;
+        const ti = tidx[i];
         let newTri = [];
-        let v = values[i];
+        // let v = values[i];
         for (let j = 0; j < 3; ++j)
         {
             let p = t[j];
             let x = p[0]; let y = p[1];
-            let index = `${x.toFixed(5)},${y.toFixed(5)}`;
-            let height = z.get(index) / zPass.get(index);
+            // let index = `${x.toFixed(5)},${y.toFixed(5)}`;
+            const index = ti[j];
+            let height = z[index] / zPass[index];
             newTri.push([x, y, height]);
         }
         triMesh.push(newTri);
