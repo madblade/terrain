@@ -193,7 +193,7 @@ function addThreeMesh(
     );
     let cube = new Mesh(geometry, material);
     place(cube);
-    scene.add(cube);
+    // scene.add(cube);
 
     let dataTexture = new DataTexture(buffer, rasterWidth, rasterHeight, RGBAFormat);
     let p = new Mesh(

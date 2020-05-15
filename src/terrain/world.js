@@ -4,6 +4,7 @@
 import { Tile }          from './tile/tile';
 import { Mesher }        from './mesh';
 import { defaultParams } from './tile/terrain';
+import { Rasterizer }    from './tile/pixel';
 
 let WorldMap = function()
 {
@@ -12,6 +13,9 @@ let WorldMap = function()
 
     this.mesher = new Mesher();
     this.mesh = null;
+
+    this.rasterizer = new Rasterizer(this.tileDimension);
+    this.noiseTile = null;
 };
 
 WorldMap.prototype.seedWorld = function(seed)
@@ -22,6 +26,10 @@ WorldMap.prototype.seedWorld = function(seed)
 { width: 1, height: 1 }
     );
     this.mesh = mesh;
+
+    let rasterizer = this.rasterizer;
+    rasterizer.precomputeNoiseTile(5);
+    this.noiseTile = rasterizer.noiseTile;
 };
 
 WorldMap.prototype.loadTile = function(i, j)
@@ -31,6 +39,8 @@ WorldMap.prototype.loadTile = function(i, j)
         mesh: this.mesh
     };
     let t = new Tile(i, j, this.tileDimension, c);
+    t.setNoiseTile(this.noiseTile);
+
     t.processHeightMap();
     t.placeObjects();
     t.renderToRaster();

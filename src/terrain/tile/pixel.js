@@ -19,21 +19,52 @@ let Rasterizer = function(dimension)
     this.rng = new Random('simplex')
     this.sng = new SimplexNoise(this.rng);
     this.tpng = new TileablePerlinNoise(this.rng);
+
+    this.zBuffer = [];
+    this.zPassBuffer = [];
+
+    // Progressive
+    this.step = -1;
+};
+
+Rasterizer.prototype.setNoiseTile = function(noiseTile)
+{
+    const td = this.noiseTileDimension
+    if (noiseTile.length !== td * td)
+    {
+        throw Error('[Rasterizer] Noise tile dimension mismatch.');
+    }
+    if (!(noiseTile instanceof Float32Array))
+    {
+        throw Error('[Rasterizer] Noise tile type mismatch.');
+    }
+
+    this.noiseTile = noiseTile;
+    this.noiseTileReady = true;
+};
+
+Rasterizer.prototype.resetBuffers = function(size)
+{
+    if (this.zBuffer.length !== size) this.zBuffer = new Float64Array(size);
+    else this.zBuffer.fill(0);
+    if (this.zPassBuffer.length !== size) this.zPassBuffer = new Uint8Array(size);
+    else this.zPassBuffer.fill(0);
 };
 
 Rasterizer.prototype.computeTriMesh = function(
     mesh
 )
 {
-    let pts = mesh.pts;
+    // let pts = mesh.pts;
     let tris = mesh.tris;
     let tidx = mesh.triPointIndexes;
     let values = mesh.buffer;
     let nbInteriorTris = mesh.nbInteriorTris;
 
     let triMesh = [];
-    let z = new Float64Array(mesh.nbTriPointIndexes);
-    let zPass = new Uint8Array(mesh.nbTriPointIndexes);
+    this.resetBuffers(mesh.nbTriPointIndexes); // Prevent GC
+    let z = this.zBuffer; // new Float64Array(mesh.nbTriPointIndexes);
+    let zPass = this.zPassBuffer; // new Uint8Array(mesh.nbTriPointIndexes);
 
     // Compute point heights
     for (let i = 0; i < tris.length; ++i)
@@ -49,7 +80,7 @@ Rasterizer.prototype.computeTriMesh = function(
         const ti = tidx[i];
         for (let j = 0; j < 3; ++j) {
             const index = ti[j];
-            let p = t[j];
+            // let p = t[j];
             if (!z[index])
             {
                 z[index] = v;
@@ -160,37 +191,39 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
     const minY = Math.min(v1h[1], v2h[1], v3h[1]);
     const maxY = Math.max(v1h[1], v2h[1], v3h[1]);
 
-    let f12 = (x, y) => (v1h[1] - v2h[1]) * x
-            + (v2h[0] - v1h[0]) * y
-            + v1h[0] * v2h[1] - v2h[0] * v1h[1];
+    const dx12 = v1h[1] - v2h[1];
+    const dy12 = v2h[0] - v1h[0];
+    const dz12 = v1h[0] * v2h[1] - v2h[0] * v1h[1];
 
-    let f23 = (x, y) => (v2h[1] - v3h[1]) * x
-            + (v3h[0] - v2h[0]) * y
-            + v2h[0] * v3h[1] - v3h[0] * v2h[1];
+    const dx23 = v2h[1] - v3h[1];
+    const dy23 = v3h[0] - v2h[0];
+    const dz23 = v2h[0] * v3h[1] - v3h[0] * v2h[1];
 
-    let f31 = (x, y) => (v3h[1] - v1h[1]) * x
-            + (v1h[0] - v3h[0]) * y
-            + v3h[0] * v1h[1] - v1h[0] * v3h[1];
+    const dx31 = v3h[1] - v1h[1];
+    const dy31 = v1h[0] - v3h[0];
+    const dz31 = v3h[0] * v1h[1] - v1h[0] * v3h[1];
 
     const startY = Math.floor(minY); const startX = Math.floor(minX);
     const endY = Math.ceil(maxY); const endX = Math.ceil(maxX);
-    const alphaDen = f23(v1h[0], v1h[1]);
-    const betaDen = f31(v2h[0], v2h[1]);
-    const gammaDen = f12(v3h[0], v3h[1]);
+    const alphaDen = dx23 * v1h[0] + dy23 * v1h[1] + dz23;
+    const betaDen =  dx31 * v2h[0] + dy31 * v2h[1] + dz31;
+    const gammaDen = dx12 * v3h[0] + dy12 * v3h[1] + dz12;
+    const width = this.dimension;
+    let hb = this.heightBuffer;
     for (let y = startY; y <= endY; ++y)
     {
-        const offset = this.dimension * y;
+        const offset = width * y;
         for (let x = startX; x <= endX; ++x)
         {
-            const alpha = f23(x, y) / alphaDen;
-            const beta = f31(x, y) / betaDen;
-            const gamma = f12(x, y) / gammaDen;
+            const alpha = (dx23 * x + dy23 * y + dz23) / alphaDen;
+            const beta = (dx31 * x + dy31 * y + dz31) / betaDen;
+            const gamma = (dx12 * x + dy12 * y + dz12) / gammaDen;
 
             if (alpha > 0 && beta > 0 && gamma > 0)
             {
                 const h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
                 // if (h < 0) h = 255;
-                this.heightBuffer[offset + x] = h;
+                hb[offset + x] = h;
                     // h;
             }
         }
@@ -219,14 +252,22 @@ Rasterizer.prototype.heightPass = function (triMesh)
 
         if (t.length !== 3) continue;
 
-        let pixelA = { x: (0.5 + t[0][0]) * width - 0.5, y: (0.5 + t[0][1]) * height - 0.5, z: t[0][2] };
-        let pixelB = { x: (0.5 + t[1][0]) * width - 0.5, y: (0.5 + t[1][1]) * height - 0.5, z: t[1][2] };
-        let pixelC = { x: (0.5 + t[2][0]) * width - 0.5, y: (0.5 + t[2][1]) * height - 0.5, z: t[2][2] };
-
         this.drawTriangle(
-            [pixelA.x, pixelA.y, pixelA.z],
-            [pixelB.x, pixelB.y, pixelB.z],
-            [pixelC.x, pixelC.y, pixelC.z],
+            [
+                (0.5 + t[0][0]) * width - 0.5,
+                (0.5 + t[0][1]) * height - 0.5,
+                t[0][2]
+            ],
+            [
+                (0.5 + t[1][0]) * width - 0.5,
+                (0.5 + t[1][1]) * height - 0.5,
+                t[1][2]
+            ],
+            [
+                (0.5 + t[2][0]) * width - 0.5,
+                (0.5 + t[2][1]) * height - 0.5,
+                t[2][2]
+            ],
         );
     }
 }
@@ -289,9 +330,10 @@ Rasterizer.prototype.noisePass = function(factor)
         const offsetNoise = widthN * (y % heightN);
         for (let x = 0; x < width; ++x)
         {
+            const b = buffer[offset + x];
             // TODO only if >= water level
-            if (buffer[offset + x] < 0) continue;
-            buffer[offset + x] -= factor * pattern[offsetNoise + (x % widthN)];
+            if (b < 0) continue;
+            buffer[offset + x] = b - factor * pattern[offsetNoise + (x % widthN)];
         }
     }
 

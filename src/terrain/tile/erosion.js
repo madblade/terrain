@@ -15,6 +15,9 @@ let Eroder = function(
     this.downhillBuffer = [];
 
     this.mesher = mesher;
+
+    // Progressive
+    this.step = -1;
 }
 
 Eroder.prototype.resetDownhillBuffer = function(newBufferLength)
@@ -110,12 +113,9 @@ Eroder.prototype.topologicalFill = function(mesh, mesher, hl)
     }
 
     let eps = 1e-5;
-    let nbi = 0;
     while (swiper.length)
     {
-        ++nbi;
         const i = swiper.pop();
-        const hi = h[i];
         let nbs = mesher.neighbours(mesh, i);
         const j0 = nbs[0]; const hj0 = h[j0];
         const j1 = nbs[1]; const hj1 = h[j1];
@@ -132,19 +132,12 @@ Eroder.prototype.topologicalFill = function(mesh, mesher, hl)
         h[i] = min + eps;
         // eps += 1e-9; // for fast approximate erosion
         let nbs2 = mesher.neighbours(mesh, j0);
-        if (nbs2.length === 3) {
-            if (h[nbs2[0]] > hj0 && h[nbs2[1]] > hj0 && h[nbs2[2]] > hj0) swiper.push(j0);
-        }
+        if (nbs2.length === 3 && h[nbs2[0]] > hj0 && h[nbs2[1]] > hj0 && h[nbs2[2]] > hj0) swiper.push(j0);
         nbs2 = mesher.neighbours(mesh, j1);
-        if (nbs2.length === 3) {
-            if (h[nbs2[0]] > hj1 && h[nbs2[1]] > hj1 && h[nbs2[2]] > hj1) swiper.push(j1);
-        }
+        if (nbs2.length === 3 && h[nbs2[0]] > hj1 && h[nbs2[1]] > hj1 && h[nbs2[2]] > hj1) swiper.push(j1);
         nbs2 = mesher.neighbours(mesh, j2);
-        if (nbs2.length === 3) {
-            if (h[nbs2[0]] > hj2 && h[nbs2[1]] > hj2 && h[nbs2[2]] > hj2) swiper.push(j2);
-        }
+        if (nbs2.length === 3 && h[nbs2[0]] > hj2 && h[nbs2[1]] > hj2 && h[nbs2[2]] > hj2) swiper.push(j2);
     }
-    console.log(`${nbi} visited!`);
 }
 
 // TODO progressive mode
@@ -179,17 +172,17 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     // hh.sort();
     // for (let i = 0; i < hl; ++i) hh[i] %= 100000;
 
-    const performQueue = false;
-    if (performQueue)
-    {
-        const ts1 = window.performance.now();
-        this.topologicalFill(mesh, mesher, hl);
-        const ts2 = window.performance.now();
-        console.log(`BFS: ${Math.floor((ts2 - ts1) * 1000)} ns.`);
-        return;
-    }
+    // const performQueue = false;
+    // if (performQueue)
+    // {
+    //     const ts1 = window.performance.now();
+    //     this.topologicalFill(mesh, mesher, hl);
+    //     const ts2 = window.performance.now();
+    //     console.log(`BFS: ${Math.floor((ts2 - ts1) * 1000)} ns.`);
+    //     return;
+    // }
 
-    const ts3 = window.performance.now();
+    const start = window.performance.now();
     let changed = false;
     let oh;
     let iterations = 0;
@@ -222,11 +215,14 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
 
         if (!changed)
         {
-            const ts4 = window.performance.now();
-            console.log(`Planchon-Darboux: ${Math.floor((ts4 - ts3) * 1000)} ns.`)
             this.swapBuffers(mesh);
-            console.log(`${iterations} iterations`);
             return;
+        }
+        else
+        {
+            const current = window.performance.now();
+            const delta = start - current;
+            // TODO progressive routine 6ms.
         }
     }
 }

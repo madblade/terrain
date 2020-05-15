@@ -20,9 +20,6 @@ let Tile = function(
     this.dimension = dimension;
     this.country = country; // contains pre-computed Voronoi in country.mesh
 
-    this.ready = false;
-    this.progress = 0;
-
     // TODO seed
     this.rasterizer = new Rasterizer(this.dimension);
     this.mesher = new Mesher();
@@ -32,6 +29,27 @@ let Tile = function(
     this.terrainGenerator = new TerrainGenerator(this.mesher, this.fieldModifier, this.eroder);
     this.languageGenerator = new LanguageGenerator();
     this.nameGiver = new NameGiver(this.languageGenerator);
+
+    // Progressive
+    this.step = -1;
+    this.ready = false;
+};
+
+Tile.prototype.setNoiseTile = function(noiseTile)
+{
+    this.rasterizer.setNoiseTile(noiseTile);
+};
+
+Tile.prototype.stepGeneration = function()
+{
+    switch (this.step)
+    {
+        case -1:
+            this.step++;
+            break;
+        case 0:
+            break;
+    }
 };
 
 Tile.prototype.processHeightMap = function()
