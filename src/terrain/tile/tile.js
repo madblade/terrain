@@ -58,6 +58,7 @@ let Tile = function(
     // Progressive
     this.step = STEPS.WAITING;
     this.ready = false;
+    this.presentInScene = false; // when added
 };
 
 Tile.prototype.setNoiseTile = function(noiseTile)
