@@ -25,6 +25,7 @@ let Rasterizer = function(dimension)
 
     // Progressive
     this.step = -1;
+    this.currentTrinangle = 0; // current rasterized triangle
 };
 
 Rasterizer.prototype.setNoiseTile = function(noiseTile)

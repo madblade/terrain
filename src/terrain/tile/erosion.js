@@ -1,6 +1,14 @@
 
 import { max }    from '../math';
 
+const EROSION_STEPS = Object.freeze({
+    GETTING_FLUX: 0,
+    GETTING_SLOPE: 1,
+    COMPUTING_RATE: 2,
+    ERODING: 3,
+    FILLING_SINKS: 4,
+});
+
 let Eroder = function(
     mesher
 )
@@ -18,6 +26,8 @@ let Eroder = function(
 
     // Progressive
     this.step = -1;
+    this.erosionPass = 0; // current erosion iteration
+    this.fillSinksPass = 0; // current filling sinks iteration
 }
 
 Eroder.prototype.resetDownhillBuffer = function(newBufferLength)

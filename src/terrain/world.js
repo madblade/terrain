@@ -23,13 +23,22 @@ WorldMap.prototype.seedWorld = function(seed)
     // Init generators, voronoi and buffers.
     let mesher = this.mesher;
     let mesh = mesher.generateGoodMesh(16384,
-{ width: 1, height: 1 }
+        { width: 1, height: 1 }
     );
+    console.log(mesh);
     this.mesh = mesh;
 
     let rasterizer = this.rasterizer;
     rasterizer.precomputeNoiseTile(5);
     this.noiseTile = rasterizer.noiseTile;
+};
+
+WorldMap.prototype.stepTileGeneration = function(tile)
+{
+    if (!tile.ready)
+        tile.stepGeneration();
+
+    return tile.ready;
 };
 
 WorldMap.prototype.loadTile = function(i, j)

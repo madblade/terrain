@@ -10,6 +10,31 @@ import { LanguageGenerator }               from '../../language';
 import { NameGiver }         from '../names';
 import { Mesher }            from '../mesh';
 
+const STEPS = Object.freeze({
+    WAITING: -1,
+    START: 0,
+
+    HEIGHTMAP_INIT: 1, // macro Gaussian
+    HEIGHTMAP_MOUNTAINS: 2, // 50 Gaussian
+    HEIGHTMAP_RELAX: 3, // relax + peaky
+    HEIGHTMAP_EROSION: 4, // MULTIPLE PASSES
+    HEIGHTMAP_LEVEL: 5, // set sea level + fill sinks
+    HEIGHTMAP_CLEAN: 6, // clean coast
+
+    OBJECTS_CITIES: 7, //
+    OBJECTS_RIVERS: 8, //
+    OBJECTS_BORDERS: 9, //
+
+    RASTER_TRIMESH: 10, // compute trimesh + init buffer
+    RASTER_RASTERIZE: 11, // MULTIPLE PASSES
+    RASTER_NOISE_PASS: 12,
+    RASTER_RIVER_PASS: 13,
+    RASTER_TREE_PASS: 14,
+    RASTER_CITY_PASS: 15,
+
+    READY: 16
+});
+
 let Tile = function(
     coordX, coordY, dimension,
     country
@@ -31,7 +56,7 @@ let Tile = function(
     this.nameGiver = new NameGiver(this.languageGenerator);
 
     // Progressive
-    this.step = -1;
+    this.step = STEPS.WAITING;
     this.ready = false;
 };
 
@@ -42,12 +67,68 @@ Tile.prototype.setNoiseTile = function(noiseTile)
 
 Tile.prototype.stepGeneration = function()
 {
+    if (this.ready) return;
+
     switch (this.step)
     {
-        case -1:
+        case STEPS.WAITING:
             this.step++;
             break;
-        case 0:
+        case STEPS.START:
+            const mesh = this.country.mesh;
+            this.fieldModifier.resetBuffer(mesh.tris.length)
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_INIT:
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_MOUNTAINS: // 50 passes to optimize
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_RELAX:
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_EROSION: // fill sinks multiple passes
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_LEVEL:
+            this.step++;
+            break;
+        case STEPS.HEIGHTMAP_CLEAN:
+            this.step++;
+            break;
+
+        case STEPS.OBJECTS_CITIES:
+            this.step++;
+            break;
+        case STEPS.OBJECTS_RIVERS:
+            this.step++;
+            break;
+        case STEPS.OBJECTS_BORDERS:
+            this.step++;
+            break;
+
+        case STEPS.RASTER_TRIMESH:
+            this.step++;
+            break;
+        case STEPS.RASTER_RASTERIZE:
+            this.step++;
+            break;
+        case STEPS.RASTER_NOISE_PASS:
+            this.step++;
+            break;
+        case STEPS.RASTER_RIVER_PASS:
+            this.step++;
+            break;
+        case STEPS.RASTER_TREE_PASS:
+            this.step++;
+            break;
+        case STEPS.RASTER_CITY_PASS:
+            this.step++;
+            break;
+
+        case STEPS.READY:
+            this.ready = true;
             break;
     }
 };
