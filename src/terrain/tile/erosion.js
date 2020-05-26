@@ -39,6 +39,7 @@ let Eroder = function(
     this.isFillingSinks = false;
 
     this.cleanCoastPass = 0;
+    this.cleanCoastPStep = 0;
 }
 
 Eroder.prototype.setErosionAmount = function(amount)
@@ -78,12 +79,6 @@ Eroder.prototype.stepErosion = function(mesh, n)
             this.isFillingSinks = false;
             this.ready = true;
     }
-    // this.doErosion(mesh, amount, n);
-};
-
-Eroder.prototype.stepFillSinks = function(mesh)
-{
-
 };
 
 Eroder.prototype.doErosion = function(mesh, amount, n)
@@ -216,7 +211,6 @@ Eroder.prototype.topologicalFill = function(mesh, mesher, hl)
     }
 }
 
-// TODO progressive mode
 Eroder.prototype.fillSinks = function(mesh, epsilon)
 {
     const mesher = this.mesher;
@@ -308,12 +302,10 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
             const delta = current - start;
             if (delta > 5) return;
             // console.log(delta);
-            // TODO progressive routine 6ms.
         }
     }
 }
 
-// TODO progressive mode
 Eroder.prototype.getFlux = function(mesh)
 {
     let dh = this.downhill(mesh);
@@ -420,21 +412,18 @@ Eroder.prototype.erode = function(mesh, amount)
     let maxr = max(er);
     let c = amount / maxr;
 
-    // TODO amount proportional to distance to the edge
     for (let i = 0; i < h.length; i++)
     {
         h[i] = h[i] - c * er[i];
     }
 }
 
-Eroder.prototype.cleanCoast = function(mesh)
+Eroder.prototype.cleanCoastP1 = function(mesh)
 {
     const mesher = this.mesher;
     let h = mesh.buffer;
     let nbTris = h.length;
     let newh;
-
-    let changed = 0;
 
     this.resetBuffer(nbTris);
     newh = this.buffer;
@@ -455,9 +444,16 @@ Eroder.prototype.cleanCoast = function(mesh)
         }
         if (count > 1) continue;
         newh[i] = best / 2;
-        changed++;
     }
     this.swapBuffers(mesh);
+};
+
+Eroder.prototype.cleanCoastP2 = function(mesh)
+{
+    const mesher = this.mesher;
+    let h = mesh.buffer;
+    let nbTris = h.length;
+    let newh;
 
     this.resetBuffer(nbTris);
     newh = this.buffer;
@@ -478,11 +474,31 @@ Eroder.prototype.cleanCoast = function(mesh)
         }
         if (count > 1) continue;
         newh[i] = best / 2;
-        changed++;
     }
     this.swapBuffers(mesh);
+};
 
-    this.cleanCoastPass++;
+Eroder.prototype.cleanCoast = function(mesh)
+{
+    if (this.cleanCoastPStep === 0)
+    {
+        const start = window.performance.now();
+        this.cleanCoastP1(mesh);
+        const current = window.performance.now();
+        const delta = current - start;
+
+        if (delta < 3) {
+            this.cleanCoastP2(mesh);
+            this.cleanCoastPass++;
+        } else {
+            this.cleanCoastPStep = 1;
+        }
+    }
+    else if (this.cleanCoastPStep === 1)
+    {
+        this.cleanCoastP2(mesh);
+        this.cleanCoastPStep = 0;
+    }
 }
 
 export {

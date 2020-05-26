@@ -60,11 +60,31 @@ FieldModifier.prototype.apply2D = function(mesh, mapper2D)
     }
 }
 
-FieldModifier.prototype.addSlope = function(mesh, direction)
+// TODO real slope
+// FieldModifier.prototype.addSlope = function(mesh, direction)
+FieldModifier.prototype.addSlope = function(mesh, tileX, tileY)
 {
-    let dx = direction[0];
-    let dy = direction[1];
-    this.apply2D(mesh, v => v[0] * dx + v[1] * dy);
+    // let dx = direction[0];
+    // let dy = direction[1];
+    let buffer = mesh.buffer;
+    let vxs = mesh.vxs;
+
+    let cx = tileX % 2 === 0 ? 0.5 : -0.5;
+    let cy = tileY % 2 === 0 ? 0.5 : -0.5;
+    for (let i = 0, l = vxs.length, v; i < l; i++) {
+        v = vxs[i];
+        buffer[i] += Math.sqrt(
+            Math.pow(v[0] - cx, 2) + Math.pow(v[1] - cy, 2)
+        );
+    }
+
+    // this.apply2D(mesh, v => v[0] * dx + v[1] * dy);
+    // console.log(cx);
+    // console.log(cy);
+    // this.apply2D(mesh, v => Math.sqrt(
+    //         Math.pow(v[0] - cx, 2) + Math.pow(v[1] - cy, 2)
+    //     )
+    // );
 }
 
 FieldModifier.prototype.addCone = function(mesh, slope)
@@ -164,8 +184,9 @@ FieldModifier.prototype.relax = function(mesh)
 
 FieldModifier.prototype.setSeaLevel = function(mesh, q)
 {
-    let delta = quantile2(mesh, q);
-    console.log(delta);
+    // let delta = quantile2(mesh, q);
+    // console.log(delta);
+    let delta = 0.2;
     this.addScalar(mesh, -delta);
 }
 

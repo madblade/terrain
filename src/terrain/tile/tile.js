@@ -45,7 +45,6 @@ let Tile = function(
     this.dimension = dimension;
     this.country = country; // contains pre-computed Voronoi in country.mesh
 
-    // TODO seed
     const tileSeed = `a${coordX},${coordY}`;
 
     this.rasterizer = new Rasterizer(this.dimension);
@@ -86,12 +85,15 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.START:
-            this.fieldModifier.resetBuffer(mesh.tris.length)
+            this.fieldModifier.resetBuffer(mesh.tris.length);
+            this.fieldModifier.swapBuffers(mesh);
+            this.fieldModifier.resetBuffer(mesh.tris.length);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_INIT:
-            fieldModifier.addSlope(mesh, terrainGenerator.randomVector(4));
+            // fieldModifier.addSlope(mesh, terrainGenerator.randomVector(4));
             fieldModifier.addCone(mesh, terrainGenerator.runif(-1, -1));
+            fieldModifier.addSlope(mesh, this.coordX, this.coordY);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_MOUNTAINS: // 50 passes to optimize
