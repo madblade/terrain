@@ -426,7 +426,7 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         let t = tris[c];
         let cX = 0; let cY = 0;
         const l = t.length;
-        if (l !== 2 && l !== 3) console.error(`Uncommon tri length: ${l}.`);
+        if (l !== 2 && l !== 3) console.warn(`Uncommon tri length: ${l}.`);
         for (let j = 0; j < l; ++j) {
             cX += t[j][0];
             cY += t[j][1];

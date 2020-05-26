@@ -2,13 +2,15 @@
 import { Random } from './random';
 
 let TerrainGenerator = function(
-    mesher, fieldModifier, eroder
+    mesher, fieldModifier, eroder, seed
 )
 {
     if (!mesher || !fieldModifier || !eroder) throw Error('Invalid argument');
 
     this.buffer = [];
-    this.randomGenerator = new Random('terrain');
+
+    seed = seed || 'terrain';
+    this.randomGenerator = new Random(seed);
 
     this.mesher = mesher;
     this.fieldModifier = fieldModifier;

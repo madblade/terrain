@@ -1,9 +1,10 @@
 
 import { Random } from './terrain/tile/random';
 
-let LanguageGenerator = function ()
+let LanguageGenerator = function(seed)
 {
-    this.randomGenerator = new Random('language');
+    seed = seed || 'language';
+    this.randomGenerator = new Random(seed);
 };
 
 LanguageGenerator.prototype.shuffled = function(list)

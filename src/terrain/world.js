@@ -105,8 +105,8 @@ WorldMap.prototype.generateIfNeeded = function(scene, camera)
 
     this.tiles.forEach((tile, id) => {
         if (tile.presentInScene && id !== `${i},${j}` && tile.p) {
-            scene.remove(tile.p);
-            tile.presentInScene = false;
+            // scene.remove(tile.p);
+            // tile.presentInScene = false;
         }
     });
 };

@@ -19,11 +19,12 @@ import { CityPlacer }                      from './terrain/tile/cities';
 import { defaultParams, TerrainGenerator } from './terrain/tile/terrain';
 import { Rasterizer }                      from './terrain/tile/pixel';
 import { LanguageGenerator }               from './language';
-import { NameGiver }                  from './terrain/names';
-import { MapControls, OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import * as d3                        from 'd3';
+import { NameGiver }                       from './terrain/names';
+import { MapControls, OrbitControls }      from 'three/examples/jsm/controls/OrbitControls';
+import * as d3                             from 'd3';
 import { SVGDrawer }                       from './terrain/render';
 import { WorldMap }                        from './terrain/world';
+import { Random }                          from './terrain/tile/random';
 
 
 let mesher = new Mesher();
@@ -122,4 +123,5 @@ function makeImage(width, height, buffer)
 //     mesher, fieldModifier, eroder, cityPlacer,
 //     terrainGenerator, languageGenerator, nameGiver
 // );
+
 init3D();

@@ -3,13 +3,15 @@ import { Random }                   from './random';
 import { max, mean, min, quantile2 } from '../math';
 
 let FieldModifier = function(
-    mesher
+    mesher, seed
 )
 {
     if (!mesher) throw Error('Invalid argument');
 
     this.buffer = [];
-    this.randomGenerator = new Random('rough');
+
+    seed = seed || 'rough';
+    this.randomGenerator = new Random(seed);
 
     this.mesher = mesher;
     this.nbMountains = 0;
@@ -91,7 +93,7 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
     {
         let r1 = rng.uniform();
         let r2 = rng.uniform();
-        mounts.push([mesh.extent.width * (r1 - 0.5), mesh.extent.height * (r2 - 0.5)]);
+        mounts.push([mesh.extent.width * (r1 - 0.5) * 0.85, mesh.extent.height * (r2 - 0.5) * 0.85]);
     }
 
     let newvals = mesh.buffer
@@ -163,6 +165,7 @@ FieldModifier.prototype.relax = function(mesh)
 FieldModifier.prototype.setSeaLevel = function(mesh, q)
 {
     let delta = quantile2(mesh, q);
+    console.log(delta);
     this.addScalar(mesh, -delta);
 }
 

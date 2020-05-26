@@ -46,13 +46,15 @@ let Tile = function(
     this.country = country; // contains pre-computed Voronoi in country.mesh
 
     // TODO seed
+    const tileSeed = `a${coordX},${coordY}`;
+
     this.rasterizer = new Rasterizer(this.dimension);
     this.mesher = new Mesher();
-    this.fieldModifier = new FieldModifier(this.mesher);
+    this.fieldModifier = new FieldModifier(this.mesher, tileSeed);
     this.eroder = new Eroder(this.mesher);
     this.cityPlacer = new CityPlacer(this.mesher, this.fieldModifier, this.eroder);
-    this.terrainGenerator = new TerrainGenerator(this.mesher, this.fieldModifier, this.eroder);
-    this.languageGenerator = new LanguageGenerator();
+    this.terrainGenerator = new TerrainGenerator(this.mesher, this.fieldModifier, this.eroder, tileSeed);
+    this.languageGenerator = new LanguageGenerator(tileSeed);
     this.nameGiver = new NameGiver(this.languageGenerator);
 
     // Progressive
@@ -101,7 +103,7 @@ Tile.prototype.stepGeneration = function()
             for (let i = 0; i < 10; i++)
                 fieldModifier.relax(mesh);
             fieldModifier.peaky(mesh);
-            let el = terrainGenerator.runif(0.02, 0.1);
+            let el = terrainGenerator.runif(0.04, 0.1);
             eroder.setErosionAmount(el);
             this.step++;
             break;
