@@ -27,7 +27,6 @@ let Rasterizer = function(dimension)
     this.step = -1;
     this.currentTrinangle = 0; // current rasterized triangle
     this.heightPassDone = false;
-    // this.isDoingHeightPass = false;
 };
 
 Rasterizer.prototype.setNoiseTile = function(noiseTile)
@@ -243,10 +242,7 @@ Rasterizer.prototype.initBuffers = function(triMesh)
 
 Rasterizer.prototype.heightPass = function (triMesh)
 {
-    // if (!this.isDoingHeightPass) {
-    //     this.initBuffers(triMesh);
-    //     this.isDoingHeightPass = true;
-    // }
+    // this.initBuffers(triMesh);
 
     const width = this.dimension;
     const height =  this.dimension;
@@ -280,7 +276,6 @@ Rasterizer.prototype.heightPass = function (triMesh)
 
         if (i === nbTris - 1)
         {
-            // this.isDoingHeightPass = false;
             this.heightPassDone = true;
             this.currentTrinangle = 0;
             return;

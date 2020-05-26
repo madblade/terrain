@@ -77,7 +77,6 @@ Tile.prototype.stepGeneration = function()
     let country = this.country;
     let cityPlacer = this.cityPlacer;
     let rasterizer = this.rasterizer;
-    let mesher = this.mesher;
 
     switch (this.step)
     {

@@ -60,12 +60,8 @@ FieldModifier.prototype.apply2D = function(mesh, mapper2D)
     }
 }
 
-// TODO real slope
-// FieldModifier.prototype.addSlope = function(mesh, direction)
 FieldModifier.prototype.addSlope = function(mesh, tileX, tileY)
 {
-    // let dx = direction[0];
-    // let dy = direction[1];
     let buffer = mesh.buffer;
     let vxs = mesh.vxs;
 
@@ -77,14 +73,6 @@ FieldModifier.prototype.addSlope = function(mesh, tileX, tileY)
             Math.pow(v[0] - cx, 2) + Math.pow(v[1] - cy, 2)
         );
     }
-
-    // this.apply2D(mesh, v => v[0] * dx + v[1] * dy);
-    // console.log(cx);
-    // console.log(cy);
-    // this.apply2D(mesh, v => Math.sqrt(
-    //         Math.pow(v[0] - cx, 2) + Math.pow(v[1] - cy, 2)
-    //     )
-    // );
 }
 
 FieldModifier.prototype.addCone = function(mesh, slope)
