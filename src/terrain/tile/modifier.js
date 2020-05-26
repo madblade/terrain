@@ -186,7 +186,7 @@ FieldModifier.prototype.setSeaLevel = function(mesh, q)
 {
     // let delta = quantile2(mesh, q);
     // console.log(delta);
-    let delta = 0.2;
+    let delta = 0.3;
     this.addScalar(mesh, -delta);
 }
 

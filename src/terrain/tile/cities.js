@@ -113,8 +113,11 @@ CityPlacer.prototype.getRivers = function(mesh, limit)
     const mesher = this.mesher;
 
     let dh = eroder.downhill(mesh);
-    let flux = eroder.getFlux(mesh);
     let h = mesh.buffer;
+    let vxs = mesh.vxs;
+    let flux;
+    if (this.fluxBuffer.length === h.length) flux = this.fluxBuffer;
+    else flux = eroder.getFlux(mesh);
 
     let links = [];
     let above = 0;
@@ -124,13 +127,19 @@ CityPlacer.prototype.getRivers = function(mesh, limit)
     }
     limit *= above / hl;
     const dhl = dh.length;
+    const mwidth = mesh.extent.width;
+    const mheight = mesh.extent.height;
     for (let i = 0; i < dhl; i++)
     {
-        if (mesher.isnearedge(mesh, i)) continue;
-        if (flux[i] > limit && h[i] > 0 && dh[i] >= 0) {
-            let up = mesh.vxs[i];
-            let down = mesh.vxs[dh[i]];
-            if (h[dh[i]] > 0) {
+        const up = vxs[i];
+        if (mesher.inef(up, mwidth, mheight)) continue;
+
+        const dhi = dh[i];
+        const hi = h[i];
+        const fi = flux[i];
+        if (fi > limit && hi > 0 && dhi >= 0) {
+            let down = vxs[dhi];
+            if (h[dhi] > 0) {
                 links.push([up, down]);
             } else {
                 links.push([up, [(up[0] + down[0])/2, (up[1] + down[1])/2]]);

@@ -97,7 +97,7 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.HEIGHTMAP_MOUNTAINS: // 50 passes to optimize
-            fieldModifier.addMountains(mesh, 10);
+            fieldModifier.addMountains(mesh, 5);
             if (fieldModifier.nbMountains >= 50)
                 this.step++;
             break;

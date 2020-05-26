@@ -354,12 +354,19 @@ Mesher.prototype.isedge = function(mesh, i)
     return (mesh.adj[i].length < 3);
 }
 
+Mesher.prototype.inef = function(v, w, h)
+{
+    const x = v[0];
+    const y = v[1];
+    return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
+}
+
 Mesher.prototype.isnearedge = function(mesh, i)
 {
-    let x = mesh.vxs[i][0];
-    let y = mesh.vxs[i][1];
-    let w = mesh.extent.width;
-    let h = mesh.extent.height;
+    const x = mesh.vxs[i][0];
+    const y = mesh.vxs[i][1];
+    const w = mesh.extent.width;
+    const h = mesh.extent.height;
     return x < -0.45 * w || x > 0.45 * w || y < -0.45 * h || y > 0.45 * h;
 }
 
