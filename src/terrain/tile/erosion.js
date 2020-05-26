@@ -2,11 +2,16 @@
 import { max }    from '../math';
 
 const EROSION_STEPS = Object.freeze({
+    WAITING: -1,
+
+    ERODING: 3,
+    FILLING_SINKS: 4,
+
+    READY: 5,
+
     GETTING_FLUX: 0,
     GETTING_SLOPE: 1,
     COMPUTING_RATE: 2,
-    ERODING: 3,
-    FILLING_SINKS: 4,
 });
 
 let Eroder = function(
@@ -29,6 +34,11 @@ let Eroder = function(
     this.step = -1;
     this.erosionPass = 0; // current erosion iteration
     this.fillSinksPass = 0; // current filling sinks iteration
+
+    this.doneFillingSinks = false;
+    this.isFillingSinks = false;
+
+    this.cleanCoastPass = 0;
 }
 
 Eroder.prototype.setErosionAmount = function(amount)
@@ -39,7 +49,41 @@ Eroder.prototype.setErosionAmount = function(amount)
 Eroder.prototype.stepErosion = function(mesh, n)
 {
     const amount = this.amount;
-    this.doErosion(mesh, amount, n);
+    switch (this.step)
+    {
+        case EROSION_STEPS.WAITING:
+            this.fillSinks(mesh); // First sink fill
+            if (this.doneFillingSinks)
+                this.step = EROSION_STEPS.ERODING;
+            break;
+
+        case EROSION_STEPS.FILLING_SINKS:
+            this.fillSinks(mesh);
+            if (this.doneFillingSinks) {
+                this.erosionPass++;
+                if (this.erosionPass >= n) this.step = EROSION_STEPS.READY;
+                else this.step = EROSION_STEPS.ERODING;
+            }
+            break;
+
+        case EROSION_STEPS.ERODING:
+            this.erode(mesh, amount);
+            this.doneFillingSinks = false;
+            this.isFillingSinks = false;
+            this.step = EROSION_STEPS.FILLING_SINKS;
+            break;
+
+        case EROSION_STEPS.READY:
+            this.doneFillingSinks = false;
+            this.isFillingSinks = false;
+            this.ready = true;
+    }
+    // this.doErosion(mesh, amount, n);
+};
+
+Eroder.prototype.stepFillSinks = function(mesh)
+{
+
 };
 
 Eroder.prototype.doErosion = function(mesh, amount, n)
@@ -182,16 +226,21 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     // let infinity = 999999;
 
     const hl = h.length;
-    this.resetBuffer(hl);
-    let newh = this.buffer;
-    for (let i = 0; i < hl; ++i)
-    {
-        if (mesher.isnearedge(mesh, i)) {
-            newh[i] = h[i];
-        } else {
-            newh[i] = Infinity;
+    let newh;
+    if (!this.isFillingSinks) {
+        this.resetBuffer(hl);
+        newh = this.buffer;
+        for (let i = 0; i < hl; ++i)
+        {
+            if (mesher.isnearedge(mesh, i)) {
+                newh[i] = h[i];
+            } else {
+                newh[i] = Infinity;
+            }
         }
+        this.isFillingSinks = true;
     }
+    newh = this.buffer;
 
     // Reduce iteration number (not worth it)
     // let hh = this._indexBuffer;
@@ -247,13 +296,18 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
 
         if (!changed)
         {
+            // console.log(iterations);
+            this.doneFillingSinks = true;
+            this.isFillingSinks = false;
             this.swapBuffers(mesh);
             return;
         }
         else
         {
             const current = window.performance.now();
-            const delta = start - current;
+            const delta = current - start;
+            if (delta > 5) return;
+            // console.log(delta);
             // TODO progressive routine 6ms.
         }
     }
@@ -373,61 +427,62 @@ Eroder.prototype.erode = function(mesh, amount)
     }
 }
 
-Eroder.prototype.cleanCoast = function(mesh, iters)
+Eroder.prototype.cleanCoast = function(mesh)
 {
     const mesher = this.mesher;
     let h = mesh.buffer;
     let nbTris = h.length;
     let newh;
 
-    for (let iter = 0; iter < iters; iter++)
-    {
-        let changed = 0;
+    let changed = 0;
 
-        this.resetBuffer(nbTris);
-        newh = this.buffer;
-        h = mesh.buffer;
-        for (let i = 0; i < h.length; i++) {
-            newh[i] = h[i];
-            let nbs = mesher.neighbours(mesh, i);
-            if (h[i] <= 0 || nbs.length !== 3) continue;
-            let count = 0;
-            let best = -999999;
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[nbs[j]] > 0) {
-                    count++;
-                } else if (h[nbs[j]] > best) {
-                    best = h[nbs[j]];
-                }
+    this.resetBuffer(nbTris);
+    newh = this.buffer;
+    h = mesh.buffer;
+    for (let i = 0; i < h.length; i++) {
+        newh[i] = h[i];
+        let nbs = mesher.neighbours(mesh, i);
+        if (h[i] <= 0 || nbs.length !== 3) continue;
+        let count = 0;
+        let best = -999999;
+        for (let j = 0; j < nbs.length; j++) {
+            const hnbsj = h[nbs[j]];
+            if (hnbsj > 0) {
+                count++;
+            } else if (hnbsj > best) {
+                best = hnbsj;
             }
-            if (count > 1) continue;
-            newh[i] = best / 2;
-            changed++;
         }
-        this.swapBuffers(mesh);
-
-        this.resetBuffer(nbTris);
-        newh = this.buffer;
-        h = mesh.buffer;
-        for (let i = 0; i < h.length; i++) {
-            newh[i] = h[i];
-            let nbs = mesher.neighbours(mesh, i);
-            if (h[i] > 0 || nbs.length !== 3) continue;
-            let count = 0;
-            let best = 999999;
-            for (let j = 0; j < nbs.length; j++) {
-                if (h[nbs[j]] <= 0) {
-                    count++;
-                } else if (h[nbs[j]] < best) {
-                    best = h[nbs[j]];
-                }
-            }
-            if (count > 1) continue;
-            newh[i] = best / 2;
-            changed++;
-        }
-        this.swapBuffers(mesh);
+        if (count > 1) continue;
+        newh[i] = best / 2;
+        changed++;
     }
+    this.swapBuffers(mesh);
+
+    this.resetBuffer(nbTris);
+    newh = this.buffer;
+    h = mesh.buffer;
+    for (let i = 0; i < h.length; i++) {
+        newh[i] = h[i];
+        let nbs = mesher.neighbours(mesh, i);
+        if (h[i] > 0 || nbs.length !== 3) continue;
+        let count = 0;
+        let best = 999999;
+        for (let j = 0; j < nbs.length; j++) {
+            const hnbsj = h[nbs[j]];
+            if (hnbsj <= 0) {
+                count++;
+            } else if (hnbsj < best) {
+                best = hnbsj;
+            }
+        }
+        if (count > 1) continue;
+        newh[i] = best / 2;
+        changed++;
+    }
+    this.swapBuffers(mesh);
+
+    this.cleanCoastPass++;
 }
 
 export {

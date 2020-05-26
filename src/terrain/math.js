@@ -8,8 +8,9 @@ let d3quantile = quantile;
 function quantile2(mesh, q)
 {
     let h = mesh.buffer;
-    let sortedh = [];
-    for (let i = 0; i < h.length; i++) {
+    const hl = h.length;
+    let sortedh = new Float64Array(hl);
+    for (let i = 0; i < hl; i++) {
         sortedh[i] = h[i];
     }
     sortedh.sort(

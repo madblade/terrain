@@ -74,11 +74,12 @@ WorldMap.prototype.generateIfNeeded = function(scene, camera)
     const j = Math.round(y);
     const tid = `${i},${j}`;
     let t = this.tiles.get(tid);
-    console.log(t);
+    // console.log(t);
 
     if (!t)
     {
         t = new Tile(i, j, this.tileDimension, { params: defaultParams, mesh: this.mesh });
+        t.setNoiseTile(this.noiseTile);
         this.tiles.set(tid, t);
     }
     else if (!t.ready)
@@ -164,7 +165,8 @@ WorldMap.prototype.addThreeMesh = function(
     }
 
     // Rivers
-    let rivers = [...country.coasts, ...country.rivers];
+    // let rivers = [...country.coasts, ...country.rivers];
+    let rivers = [...country.rivers];
     for (let i = 0; i < rivers.length; ++i) {
         const r = rivers[i];
         let m = new LineBasicMaterial({color: 0xff0000});

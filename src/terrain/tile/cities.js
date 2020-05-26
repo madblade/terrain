@@ -15,6 +15,8 @@ let CityPlacer = function(
     this.mesher = mesher;
     this.fieldModifier = fieldModifier;
     this.eroder = eroder;
+
+    this.nbCities = 0;
 }
 
 CityPlacer.prototype.resetBuffer = function(newBufferLength)
@@ -94,12 +96,13 @@ CityPlacer.prototype.placeCity = function(country)
     let score = this.cityScore(country.mesh, country.cities);
     let newcity = maxArg(score);
     country.cities.push(newcity);
+    this.nbCities++;
 }
 
-CityPlacer.prototype.placeCities = function(country)
+CityPlacer.prototype.placeCities = function(country, n)
 {
-    let params = country.params;
-    let n = params.ncities;
+    // let params = country.params;
+    // let n = params.ncities;
     for (let i = 0; i < n; i++)
         this.placeCity(country);
 }
@@ -115,11 +118,13 @@ CityPlacer.prototype.getRivers = function(mesh, limit)
 
     let links = [];
     let above = 0;
-    for (let i = 0; i < h.length; i++) {
+    const hl = h.length;
+    for (let i = 0; i < hl; i++) {
         if (h[i] > 0) above++;
     }
-    limit *= above / h.length;
-    for (let i = 0; i < dh.length; i++)
+    limit *= above / hl;
+    const dhl = dh.length;
+    for (let i = 0; i < dhl; i++)
     {
         if (mesher.isnearedge(mesh, i)) continue;
         if (flux[i] > limit && h[i] > 0 && dh[i] >= 0) {

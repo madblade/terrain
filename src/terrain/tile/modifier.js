@@ -12,6 +12,7 @@ let FieldModifier = function(
     this.randomGenerator = new Random('rough');
 
     this.mesher = mesher;
+    this.nbMountains = 0;
 };
 
 FieldModifier.prototype.resetBuffer = function(newBufferLength)
@@ -97,23 +98,31 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
     const vxs = mesh.vxs;
     const r22 = 1 / (2 * r * r);
     const vl = vxs.length
-    // TODO optimize by neighborhood
     for (let i = 0; i < vl; i++)
     {
         let p = vxs[i];
-        for (let j = 0; j < n; j++) {
+        const px = p[0];
+        const py = p[1];
+
+        for (let j = 0; j < n; j++)
+        {
             const m = mounts[j];
+            const dx = px - m[0];
+            const dy = py - m[1];
+
             newvals[i] +=
                 Math.pow(
                     Math.exp(-
                         (
-                            Math.pow(p[0] - m[0], 2) +
-                            Math.pow(p[1] - m[1], 2)
+                            Math.pow(dx, 2) +
+                            Math.pow(dy, 2)
                         ) * r22),
                     2
                 );
         }
     }
+
+    this.nbMountains += n;
 }
 
 FieldModifier.prototype.normalize = function(mesh)

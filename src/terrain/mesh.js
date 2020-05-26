@@ -271,25 +271,26 @@ Mesher.prototype.generateGoodMesh = function(n, extent)
 // TODO progressive mode
 Mesher.prototype.mergeSegments = function(segs)
 {
-    let adj = {};
-    for (let i = 0; i < segs.length; i++) {
+    let adj = new Map();
+    const nbSegs = segs.length;
+    for (let i = 0; i < nbSegs; i++) {
         let seg = segs[i];
-        let a0 = adj[seg[0]] || [];
-        let a1 = adj[seg[1]] || [];
+        let a0 = adj.get(seg[0]) || [];
+        let a1 = adj.get(seg[1]) || [];
         a0.push(seg[1]);
         a1.push(seg[0]);
-        adj[seg[0]] = a0;
-        adj[seg[1]] = a1;
+        adj.set(seg[0], a0);
+        adj.set(seg[1], a1);
     }
-    let done = [];
+    let done = new Uint8Array(nbSegs);
     let paths = [];
     let path = null;
     while (true)
     {
         if (path === null) {
-            for (let i = 0; i < segs.length; i++) {
+            for (let i = 0; i < nbSegs; i++) {
                 if (done[i]) continue;
-                done[i] = true;
+                done[i] = 1;
                 path = [segs[i][0], segs[i][1]];
                 break;
             }
@@ -297,20 +298,23 @@ Mesher.prototype.mergeSegments = function(segs)
         }
 
         let changed = false;
-        for (let i = 0; i < segs.length; i++) {
+        for (let i = 0; i < nbSegs; i++) {
             if (done[i]) continue;
-            if (adj[path[0]].length === 2 && segs[i][0] === path[0])
+            let ap0 = adj.get(path[0]);
+            let apl = adj.get(path[path.length - 1]);
+
+            if (ap0 && ap0.length === 2 && segs[i][0] === path[0])
                 path.unshift(segs[i][1]);
-            else if (adj[path[0]].length === 2 && segs[i][1] === path[0])
+            else if (ap0 && ap0.length === 2 && segs[i][1] === path[0])
                 path.unshift(segs[i][0]);
-            else if (adj[path[path.length - 1]].length === 2 && segs[i][0] === path[path.length - 1])
+            else if (apl && apl.length === 2 && segs[i][0] === path[path.length - 1])
                 path.push(segs[i][1]);
-            else if (adj[path[path.length - 1]].length === 2 && segs[i][1] === path[path.length - 1])
+            else if (apl && apl.length === 2 && segs[i][1] === path[path.length - 1])
                 path.push(segs[i][0]);
             else
                 continue;
 
-            done[i] = true;
+            done[i] = 1;
             changed = true;
             break;
         }

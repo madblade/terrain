@@ -26,11 +26,13 @@ let Rasterizer = function(dimension)
     // Progressive
     this.step = -1;
     this.currentTrinangle = 0; // current rasterized triangle
+    this.heightPassDone = false;
+    // this.isDoingHeightPass = false;
 };
 
 Rasterizer.prototype.setNoiseTile = function(noiseTile)
 {
-    const td = this.noiseTileDimension
+    const td = this.noiseTileDimension;
     if (noiseTile.length !== td * td)
     {
         throw Error('[Rasterizer] Noise tile dimension mismatch.');
@@ -242,12 +244,18 @@ Rasterizer.prototype.initBuffers = function(triMesh)
 // TODO progressive mode
 Rasterizer.prototype.heightPass = function (triMesh)
 {
-    this.initBuffers(triMesh);
+    // if (!this.isDoingHeightPass) {
+    //     this.initBuffers(triMesh);
+    //     this.isDoingHeightPass = true;
+    // }
+
     const width = this.dimension;
     const height =  this.dimension;
 
+    const start = window.performance.now();
     const nbTris = triMesh.length;
-    for (let i = 0; i < nbTris; ++i)
+    const startTri = this.currentTrinangle;
+    for (let i = startTri; i < nbTris; ++i)
     {
         let t = triMesh[i];
 
@@ -270,6 +278,23 @@ Rasterizer.prototype.heightPass = function (triMesh)
                 t[2][2]
             ],
         );
+
+        if (i === nbTris - 1)
+        {
+            // this.isDoingHeightPass = false;
+            this.heightPassDone = true;
+            this.currentTrinangle = 0;
+            return;
+        }
+        else
+        {
+            const current = window.performance.now();
+            const delta = current - start;
+            if (delta > 5) {
+                this.currentTrinangle = i + 1;
+                return;
+            }
+        }
     }
 }
 
