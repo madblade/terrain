@@ -419,6 +419,7 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
 Rasterizer.prototype.treePass = function(mesh)
 {
     // TODO never on a chunk border
+    // TODO combine height with per-chunk perlin noise
 };
 
 export { Rasterizer };

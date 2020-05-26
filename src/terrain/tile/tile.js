@@ -69,6 +69,14 @@ Tile.prototype.setNoiseTile = function(noiseTile)
 Tile.prototype.stepGeneration = function()
 {
     if (this.ready) return;
+    let mesh = this.country.mesh;
+    let fieldModifier = this.fieldModifier;
+    let terrainGenerator = this.terrainGenerator;
+    let eroder = this.eroder;
+    let country = this.country;
+    let cityPlacer = this.cityPlacer;
+    let rasterizer = this.rasterizer;
+    let mesher = this.mesher;
 
     switch (this.step)
     {
@@ -76,52 +84,77 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.START:
-            const mesh = this.country.mesh;
             this.fieldModifier.resetBuffer(mesh.tris.length)
             this.step++;
             break;
         case STEPS.HEIGHTMAP_INIT:
+            fieldModifier.addSlope(mesh, terrainGenerator.randomVector(4));
+            fieldModifier.addCone(mesh, terrainGenerator.runif(-1, -1));
             this.step++;
             break;
         case STEPS.HEIGHTMAP_MOUNTAINS: // 50 passes to optimize
+            fieldModifier.addMountains(mesh, 50);
             this.step++;
             break;
-        case STEPS.HEIGHTMAP_RELAX:
+        case STEPS.HEIGHTMAP_RELAX: // relax + peaky + set erosion amount for next pass
+            for (let i = 0; i < 10; i++)
+                fieldModifier.relax(mesh);
+            fieldModifier.peaky(mesh);
+            let el = terrainGenerator.runif(0, 0.1);
+            eroder.setErosionAmount(el);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_EROSION: // fill sinks multiple passes
+            eroder.stepErosion(mesh, 5);
+            // eroder.doErosion(mesh, eroder.amount, 5);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_LEVEL:
+            let sl = terrainGenerator.runif(0.2, 0.6);
+            fieldModifier.setSeaLevel(mesh, sl);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_CLEAN:
+            eroder.fillSinks(mesh);
+            eroder.cleanCoast(mesh, 3);
             this.step++;
             break;
 
         case STEPS.OBJECTS_CITIES:
+            cityPlacer.placeCities(country);
             this.step++;
             break;
         case STEPS.OBJECTS_RIVERS:
+            country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
             this.step++;
             break;
         case STEPS.OBJECTS_BORDERS:
+            country.coasts = mesher.contour(country.mesh, 0);
+            country.terr = cityPlacer.getTerritories(country);
+            country.borders = cityPlacer.getBorders(country);
             this.step++;
             break;
 
         case STEPS.RASTER_TRIMESH:
+            let triMesh = rasterizer.computeTriMesh(country.mesh);
+            this.triMesh = triMesh;
+            rasterizer.initBuffers(triMesh)
             this.step++;
             break;
         case STEPS.RASTER_RASTERIZE:
+            rasterizer.heightPass(this.triMesh);
             this.step++;
             break;
         case STEPS.RASTER_NOISE_PASS:
+            rasterizer.noisePass(5.0);
             this.step++;
             break;
         case STEPS.RASTER_RIVER_PASS:
+            rasterizer.riverPass(country.rivers);
             this.step++;
             break;
         case STEPS.RASTER_TREE_PASS:
+            rasterizer.cityPass(country.mesh, country.cities);
             this.step++;
             break;
         case STEPS.RASTER_CITY_PASS:

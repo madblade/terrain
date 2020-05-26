@@ -25,9 +25,31 @@ let Eroder = function(
     this.mesher = mesher;
 
     // Progressive
+    this.amount = 0;
     this.step = -1;
     this.erosionPass = 0; // current erosion iteration
     this.fillSinksPass = 0; // current filling sinks iteration
+}
+
+Eroder.prototype.setErosionAmount = function(amount)
+{
+    this.amount = amount;
+};
+
+Eroder.prototype.stepErosion = function(mesh, n)
+{
+    const amount = this.amount;
+    this.doErosion(mesh, amount, n);
+};
+
+Eroder.prototype.doErosion = function(mesh, amount, n)
+{
+    n = n || 1;
+    this.fillSinks(mesh);
+    for (let i = 0; i < n; i++) {
+        this.erode(mesh, amount);
+        this.fillSinks(mesh);
+    }
 }
 
 Eroder.prototype.resetDownhillBuffer = function(newBufferLength)
@@ -348,16 +370,6 @@ Eroder.prototype.erode = function(mesh, amount)
     for (let i = 0; i < h.length; i++)
     {
         h[i] = h[i] - c * er[i];
-    }
-}
-
-Eroder.prototype.doErosion = function(mesh, amount, n)
-{
-    n = n || 1;
-    this.fillSinks(mesh);
-    for (let i = 0; i < n; i++) {
-        this.erode(mesh, amount);
-        this.fillSinks(mesh);
     }
 }
 

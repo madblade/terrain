@@ -59,22 +59,33 @@ WorldMap.prototype.loadTile = function(i, j)
     let t = new Tile(i, j, this.tileDimension, c);
     t.setNoiseTile(this.noiseTile);
 
-    t.processHeightMap();
-    t.placeObjects();
-    t.renderToRaster();
+    // t.processHeightMap();
+    // t.placeObjects();
+    // t.renderToRaster();
     this.tiles.set(`${i},${j}`, t);
 };
 
 WorldMap.prototype.generateIfNeeded = function(scene, camera)
 {
     let p = camera.position;
-    let x = p.x;
-    let y = p.y;
-    let i = Math.round(x);
-    let j = Math.round(y);
-    let t = this.tiles.get(`${i},${j}`);
+    const x = p.x;
+    const y = p.y;
+    const i = Math.round(x);
+    const j = Math.round(y);
+    const tid = `${i},${j}`;
+    let t = this.tiles.get(tid);
     console.log(t);
-    if (t && !t.presentInScene)
+
+    if (!t)
+    {
+        t = new Tile(i, j, this.tileDimension, { params: defaultParams, mesh: this.mesh });
+        this.tiles.set(tid, t);
+    }
+    else if (!t.ready)
+    {
+        t.stepGeneration();
+    }
+    else if (!t.presentInScene)
     {
         t.presentInScene = true;
         if (!t.p)
@@ -104,7 +115,7 @@ WorldMap.prototype.genWorld = function()
     return new Promise(resolve =>
     {
         setTimeout(() =>{
-            this.loadTile(0, 0);
+            // this.loadTile(0, 0);
             // this.loadTile(0, 1);
             // this.loadTile(1, 0);
             // this.loadTile(1, 1);
