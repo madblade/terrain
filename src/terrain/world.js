@@ -18,7 +18,7 @@ import {
 let WorldMap = function()
 {
     this.tiles = new Map();
-    this.tileDimension = 512;
+    this.tileDimension = 1024;
 
     this.mesher = new Mesher();
     this.mesh = null;
@@ -91,7 +91,11 @@ WorldMap.prototype.generateIfNeeded = function(scene, camera)
         t.presentInScene = true;
         if (!t.p)
         {
-            let buffer = this.makeImageBufferFromRaster(t, t.getRaster());
+            let buffer = this.makeImageBufferFromRaster(
+                t,
+                t.getRaster(),
+                t.getSurfaceRaster()
+            );
             let p = this.addThreeMesh(
                 scene, t.getCountry(), t.triMesh, t.dimension, t.dimension, buffer, t.coordX, t.coordY
             );
@@ -131,22 +135,30 @@ WorldMap.prototype.getTiles = function ()
 };
 
 WorldMap.prototype.makeImageBufferFromRaster = function(
-    tile, heightBuffer
+    tile, heightBuffer, surfaceBuffer
 )
 {
     const width = tile.dimension;
     const height = tile.dimension;
     let rb = heightBuffer;
+    let sb = surfaceBuffer;
     let buffer = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < height; ++i) for (let j = 0; j < width; ++j)
     {
-        let s = i * width + j;
-        let stride = s * 4;
-        let si = (width - i - 1) * width + j;
-        let v = rb[si] >> 0;
-        buffer[stride    ] = v > 0 ? v : 0;
-        buffer[stride + 1] = v > 0 ? v : 0;
-        buffer[stride + 2] = v > 0 ? v : 255;
+        const s = i * width + j;
+        const stride = s * 4;
+        const si = (width - i - 1) * width + j;
+        const v = rb[si] >> 0;
+        const t = sb[si] >> 0;
+        if (v > 0) {
+            buffer[stride    ] = t !== 1 ? v : 255;
+            buffer[stride + 1] = t !== 1 ? v : 0;
+            buffer[stride + 2] = t !== 1 ? v : 0;
+        } else {
+            buffer[stride    ] = 0;
+            buffer[stride + 1] = 0;
+            buffer[stride + 2] = 255;
+        }
         buffer[stride + 3] = 255;
     }
 

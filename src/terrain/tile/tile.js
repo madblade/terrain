@@ -9,6 +9,7 @@ import { TerrainGenerator } from './terrain';
 import { LanguageGenerator }               from '../../language';
 import { NameGiver }         from '../names';
 import { Mesher }            from '../mesh';
+import {BiomePlacer} from "./biomes";
 
 const STEPS = Object.freeze({
     WAITING: -1,
@@ -21,9 +22,9 @@ const STEPS = Object.freeze({
     HEIGHTMAP_LEVEL: 5, // set sea level + fill sinks
     HEIGHTMAP_CLEAN: 6, // clean coast
 
-    OBJECTS_CITIES: 7, //
-    OBJECTS_RIVERS: 8, //
-    OBJECTS_BORDERS: 9, //
+    OBJECTS_RIVERS: 7, //
+    OBJECTS_CITIES: 8, //
+    OBJECTS_BIOMES: 9, //
 
     RASTER_TRIMESH: 10, // compute trimesh + init buffer
     RASTER_RASTERIZE: 11, // MULTIPLE PASSES
@@ -47,6 +48,7 @@ let Tile = function(
     this.buffer = new Float64Array(country.mesh.tris.length);
 
     const tileSeed = `a${coordX},${coordY}`;
+    this.tileSeed = tileSeed;
 
     this.rasterizer = new Rasterizer(this.dimension);
     this.mesher = new Mesher();
@@ -54,6 +56,8 @@ let Tile = function(
     this.eroder = new Eroder(this.mesher);
     this.cityPlacer = new CityPlacer(this.mesher, this.fieldModifier, this.eroder);
     this.terrainGenerator = new TerrainGenerator(this.mesher, this.fieldModifier, this.eroder, tileSeed);
+
+    // this.biomePlacer = new BiomePlacer(tileSeed);
     this.languageGenerator = new LanguageGenerator(tileSeed);
     this.nameGiver = new NameGiver(this.languageGenerator);
 
@@ -128,21 +132,26 @@ Tile.prototype.stepGeneration = function()
                 this.step++;
             break;
 
+        case STEPS.OBJECTS_RIVERS:
+            country.rivers = cityPlacer.getRivers(country.mesh, this, 0.01);
+            this.step++;
+            break;
         case STEPS.OBJECTS_CITIES:
             cityPlacer.placeCities(country, this, 3);
             if (cityPlacer.nbCities >= country.params.ncities)
                 this.step++;
             break;
-        case STEPS.OBJECTS_RIVERS:
-            country.rivers = cityPlacer.getRivers(country.mesh, this, 0.01);
+        case STEPS.OBJECTS_BIOMES:
+            // let biomePlacer = this.biomePlacer;
+            // biomePlacer.initBuffer(country.mesh.vxs.length);
+            // biomePlacer.computeBiomes(country.mesh);
+            rasterizer.seedChunkRandom(this.tileSeed);
+            rasterizer.computeChunkTreeDensity();
             this.step++;
             break;
-        case STEPS.OBJECTS_BORDERS:
             // country.coasts = mesher.contour(country.mesh, 0);
             // country.terr = cityPlacer.getTerritories(country);
             // country.borders = cityPlacer.getBorders(country);
-            this.step++;
-            break;
 
         case STEPS.RASTER_TRIMESH:
             let triMesh = rasterizer.computeTriMesh(country.mesh, this);
@@ -164,10 +173,11 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.RASTER_TREE_PASS:
-            rasterizer.cityPass(country.mesh, country.cities);
+            rasterizer.treePass(country.mesh);
             this.step++;
             break;
         case STEPS.RASTER_CITY_PASS:
+            rasterizer.cityPass(country.mesh, country.cities);
             this.step++;
             break;
 
@@ -237,6 +247,11 @@ Tile.prototype.getRaster = function()
 {
     return this.rasterizer.heightBuffer;
 };
+
+Tile.prototype.getSurfaceRaster = function()
+{
+    return this.rasterizer.surfaceBuffer;
+}
 
 Tile.prototype.getCountry = function()
 {

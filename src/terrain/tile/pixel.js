@@ -1,6 +1,13 @@
 import { Random }              from './random';
 import { SimplexNoise, TileablePerlinNoise } from './noise';
 
+const CHUNK_TREES = Object.freeze({
+    NO_TREES: 0,
+    LIGHT: 1,
+    DENSE: 2,
+    FULL: 3
+});
+
 let Rasterizer = function(dimension)
 {
     this.dimension = dimension || 512;
@@ -9,8 +16,11 @@ let Rasterizer = function(dimension)
     this.biomeDimension = this.dimension / this.chunkHeight;
 
     this.heightBuffer = [];
-    this.chunkBiomes = [];
     this.surfaceBuffer = [];
+
+    this.treeDensities = [];
+    // this.chunkBiomes = [];
+    this.rng2 = null;
 
     this.noiseTile = [];
     this.noiseTileDimension = 256;
@@ -242,7 +252,8 @@ Rasterizer.prototype.initBuffers = function(triMesh)
     const width = this.dimension;
     const height =  this.dimension;
     this.heightBuffer = new Int32Array(width * height);
-    this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
+    this.surfaceBuffer = new Uint8Array(width * height);
+    // this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
 };
 
 Rasterizer.prototype.heightPass = function (triMesh)
@@ -423,15 +434,6 @@ Rasterizer.prototype.riverPass = function(rivers)
                 dnx1, dny1, -1,
                 dnx2, dny2, -1,
             );
-
-            // let pixelA1 = { x: (0.5 + p1[0]) * width - 1.5, y: (0.5 + p1[1]) * height - 1.5, z: -1 };
-            // let pixelB1 = { x: (0.5 + p1[0]) * width + 1.5, y: (0.5 + p1[1]) * height + 1.5, z: -1 };
-            // let pixelC1 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
-            // this.drawTriangle(
-            //     [pixelA1.x, pixelA1.y, pixelA1.z],
-            //     [pixelB1.x, pixelB1.y, pixelB1.z],
-            //     [pixelC1.x, pixelC1.y, pixelC1.z],
-            // );
         }
     }
 };
@@ -441,7 +443,7 @@ Rasterizer.prototype.drawCity = function(cityX, cityY, cityRadius)
     this.drawCircle(cityX, cityY, cityRadius);
     this.drawCircle(cityX, cityY, cityRadius - 1);
     this.drawCircle(cityX, cityY, cityRadius - 2);
-    // TODO noisier
+    // TODO voronoi
     // TODO inside of cities
 };
 
@@ -474,10 +476,70 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
     }
 };
 
+Rasterizer.prototype.seedChunkRandom = function(seed)
+{
+    this.rng2 = new Random(seed);
+};
+
+Rasterizer.prototype.computeChunkTreeDensity = function()
+{
+    const nbChunksX = this.dimension / this.chunkHeight;
+    const nbChunksY = this.dimension / this.chunkWidth;
+    const densityLength = nbChunksX * nbChunksY;
+    this.treeDensities = new Uint8Array(densityLength);
+    let td = this.treeDensities;
+    let rng2 = this.rng2;
+    for (let i = 0; i < densityLength; ++i) {
+        const r = rng2.uniform();
+        if (r > 0.99) {
+            td[i] = CHUNK_TREES.FULL;
+        } else if (r > 0.9) {
+            td[i] = CHUNK_TREES.DENSE;
+        } else if (r > 0.5) {
+            td[i] = CHUNK_TREES.LIGHT;
+        } else {
+            td[i] = CHUNK_TREES.NONE;
+        }
+    }
+};
+
+Rasterizer.prototype.fillTrees = function(chunkI, chunkJ, nbTrees)
+{
+    const chunkHeight = this.chunkHeight;
+    const chunkWidth = this.chunkWidth;
+    const xStart = chunkI * chunkHeight; // const xEnd = xStart + 16;
+    const yStart = chunkJ * chunkWidth; // const yEnd = yStart + 16;
+
+    const w = this.dimension;
+    let rng = this.rng2;
+    let sb = this.surfaceBuffer;
+    // TODO jitter sampling
+    for (let i = 0; i < nbTrees; ++i) {
+        // never on a chunk border.
+        const x = xStart + Math.floor(1 + rng.uniform() * (chunkWidth - 1));
+        const y = yStart + Math.floor(1 + rng.uniform() * (chunkHeight - 1));
+        sb[x * w + y] = 1; // only plant stump
+    }
+};
+
+// TODO combine height with per-chunk perlin noise
 Rasterizer.prototype.treePass = function(mesh)
 {
-    // TODO never on a chunk border
-    // TODO combine height with per-chunk perlin noise
+    const nbChunksX = this.dimension / 16;
+    const nbChunksY = this.dimension / 16;
+    let td = this.treeDensities;
+    let c = 0;
+    for (let j = 0; j < nbChunksY; ++j) {
+        for (let i = 0; i < nbChunksX; ++i) {
+            switch (td[c]) {
+                case CHUNK_TREES.NONE: break;
+                case CHUNK_TREES.FULL: this.fillTrees(i, j, 15); break;
+                case CHUNK_TREES.DENSE: this.fillTrees(i, j, 5); break;
+                case CHUNK_TREES.LIGHT: this.fillTrees(i, j, 2); break;
+            }
+            ++c;
+        }
+    }
 };
 
 export { Rasterizer };
