@@ -31,18 +31,16 @@ FieldModifier.prototype.swapBuffers = function(otherObject)
     otherObject.buffer = tempBuffer;
 }
 
-FieldModifier.prototype.addScalar = function(mesh, scalar)
+FieldModifier.prototype.addScalar = function(mesh, buffer, scalar)
 {
-    let buffer = mesh.buffer;
     for (let i = 0, l = buffer.length; i < l; i++)
     {
         buffer[i] += scalar;
     }
 }
 
-FieldModifier.prototype.apply1D = function(mesh, mapper1D)
+FieldModifier.prototype.apply1D = function(mesh, buffer, mapper1D)
 {
-    let buffer = mesh.buffer;
     for (let i = 0, l = buffer.length; i < l; i++)
     {
         const b = buffer[i];
@@ -50,19 +48,17 @@ FieldModifier.prototype.apply1D = function(mesh, mapper1D)
     }
 }
 
-FieldModifier.prototype.apply2D = function(mesh, mapper2D)
+FieldModifier.prototype.apply2D = function(mesh, buffer, mapper2D)
 {
     let vxs = mesh.vxs;
-    let buffer = mesh.buffer;
     for (let i = 0, l = vxs.length, v; i < l; i++) {
         v = vxs[i];
         buffer[i] = mapper2D(v);
     }
 }
 
-FieldModifier.prototype.addSlope = function(mesh, tileX, tileY)
+FieldModifier.prototype.addSlope = function(mesh, buffer, tileX, tileY)
 {
-    let buffer = mesh.buffer;
     let vxs = mesh.vxs;
 
     let cx = tileX % 2 === 0 ? 0.5 : -0.5;
@@ -75,9 +71,9 @@ FieldModifier.prototype.addSlope = function(mesh, tileX, tileY)
     }
 }
 
-FieldModifier.prototype.addCone = function(mesh, slope)
+FieldModifier.prototype.addCone = function(mesh, buffer, slope)
 {
-    this.apply2D(mesh,
+    this.apply2D(mesh, buffer,
     v => Math.sqrt(
         Math.pow(v[0], 2) + Math.pow(v[1], 2)
     ) * slope);
@@ -91,7 +87,7 @@ FieldModifier.prototype.resetField = function(mesh)
 }
 
 
-FieldModifier.prototype.addMountains = function(mesh, n, r)
+FieldModifier.prototype.addMountains = function(mesh, buffer, n, r)
 {
     const rng = this.randomGenerator;
 
@@ -104,7 +100,6 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
         mounts.push([mesh.extent.width * (r1 - 0.5) * 0.85, mesh.extent.height * (r2 - 0.5) * 0.85]);
     }
 
-    let newvals = mesh.buffer
     const vxs = mesh.vxs;
     const r22 = 1 / (2 * r * r);
     const vl = vxs.length
@@ -120,7 +115,7 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
             const dx = px - m[0];
             const dy = py - m[1];
 
-            newvals[i] +=
+            buffer[i] +=
                 Math.pow(
                     Math.exp(-
                         (
@@ -135,27 +130,27 @@ FieldModifier.prototype.addMountains = function(mesh, n, r)
     this.nbMountains += n;
 }
 
-FieldModifier.prototype.normalize = function(mesh)
+FieldModifier.prototype.normalize = function(mesh, buffer)
 {
-    let lo = min(mesh.buffer);
-    let hi = max(mesh.buffer);
-    this.apply1D(mesh, x => (x - lo) / (hi - lo));
+    let lo = min(buffer);
+    let hi = max(buffer);
+    this.apply1D(mesh, buffer, x => (x - lo) / (hi - lo));
 }
 
-FieldModifier.prototype.peaky = function(mesh)
+FieldModifier.prototype.peaky = function(mesh, buffer)
 {
-    this.normalize(mesh);
-    this.apply1D(mesh, Math.sqrt);
+    this.normalize(mesh, buffer);
+    this.apply1D(mesh, buffer, Math.sqrt);
 }
 
-FieldModifier.prototype.relax = function(mesh)
+FieldModifier.prototype.relax = function(mesh, tile)
 {
     const mesher = this.mesher;
 
-    let length = mesh.buffer.length
+    let field = tile.buffer;
+    let length = field.length
     this.resetBuffer(length);
     let newh = this.buffer;
-    let field = mesh.buffer;
 
     for (let i = 0; i < length; i++)
     {
@@ -167,15 +162,15 @@ FieldModifier.prototype.relax = function(mesh)
         newh[i] = mean(nbs, field);
     }
 
-    this.swapBuffers(mesh);
+    this.swapBuffers(tile);
 }
 
-FieldModifier.prototype.setSeaLevel = function(mesh, q)
+FieldModifier.prototype.setSeaLevel = function(mesh, buffer, q)
 {
     // let delta = quantile2(mesh, q);
     // console.log(delta);
     let delta = 0.3;
-    this.addScalar(mesh, -delta);
+    this.addScalar(mesh, buffer, -delta);
 }
 
 export {

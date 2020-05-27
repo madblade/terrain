@@ -47,19 +47,19 @@ Eroder.prototype.setErosionAmount = function(amount)
     this.amount = amount;
 };
 
-Eroder.prototype.stepErosion = function(mesh, n)
+Eroder.prototype.stepErosion = function(mesh, tile, n)
 {
     const amount = this.amount;
     switch (this.step)
     {
         case EROSION_STEPS.WAITING:
-            this.fillSinks(mesh); // First sink fill
+            this.fillSinks(mesh, tile); // First sink fill
             if (this.doneFillingSinks)
                 this.step = EROSION_STEPS.ERODING;
             break;
 
         case EROSION_STEPS.FILLING_SINKS:
-            this.fillSinks(mesh);
+            this.fillSinks(mesh, tile);
             if (this.doneFillingSinks) {
                 this.erosionPass++;
                 if (this.erosionPass >= n) this.step = EROSION_STEPS.READY;
@@ -68,7 +68,7 @@ Eroder.prototype.stepErosion = function(mesh, n)
             break;
 
         case EROSION_STEPS.ERODING:
-            this.erode(mesh, amount);
+            this.erode(mesh, tile, amount);
             this.doneFillingSinks = false;
             this.isFillingSinks = false;
             this.step = EROSION_STEPS.FILLING_SINKS;
@@ -133,23 +133,23 @@ Eroder.prototype.swapBuffers = function(otherObject)
     otherObject.buffer = tempBuffer;
 };
 
-Eroder.prototype.downhill = function(mesh)
+Eroder.prototype.downhill = function(mesh, tile)
 {
-    let nbTris = mesh.buffer.length;
+    let nbTris = tile.buffer.length;
     this.resetDownhillBuffer(nbTris);
     let downs = this.downhillBuffer;
     for (let i = 0; i < nbTris; i++) {
-        downs[i] = this.downfrom(mesh, i);
+        downs[i] = this.downfrom(mesh, tile, i);
     }
     return downs;
 };
 
-Eroder.prototype.downfrom = function(mesh, i)
+Eroder.prototype.downfrom = function(mesh, tile, i)
 {
     const mesher = this.mesher;
 
     if (mesher.isedge(mesh, i)) return -2;
-    let h = mesh.buffer;
+    let h = tile.buffer;
     let best = -1;
     let besth = h[i];
     let nbs = mesher.neighbours(mesh, i);
@@ -211,11 +211,11 @@ Eroder.prototype.topologicalFill = function(mesh, mesher, hl)
     }
 }
 
-Eroder.prototype.fillSinks = function(mesh, epsilon)
+Eroder.prototype.fillSinks = function(mesh, tile, epsilon)
 {
     const mesher = this.mesher;
 
-    let h = mesh.buffer;
+    let h = tile.buffer;
     epsilon = epsilon || 1e-5;
     // let infinity = 999999;
 
@@ -293,7 +293,7 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
             // console.log(iterations);
             this.doneFillingSinks = true;
             this.isFillingSinks = false;
-            this.swapBuffers(mesh);
+            this.swapBuffers(tile);
             return;
         }
         else
@@ -306,15 +306,15 @@ Eroder.prototype.fillSinks = function(mesh, epsilon)
     }
 }
 
-Eroder.prototype.getFlux = function(mesh)
+Eroder.prototype.getFlux = function(mesh, tile)
 {
-    let dh = this.downhill(mesh);
-    let nbTris = mesh.buffer.length;
+    let dh = this.downhill(mesh, tile);
+    let nbTris = tile.buffer.length;
     this.resetIndexBuffer(nbTris);
     this.resetFluxBuffer(nbTris);
     let idxs = this.indexBuffer;
     let flux = this.fluxBuffer;
-    let h = mesh.buffer;
+    let h = tile.buffer;
 
     const hl = h.length;
     const hlInv = 1 / hl;
@@ -342,23 +342,23 @@ Eroder.prototype.getFlux = function(mesh)
     return flux;
 }
 
-Eroder.prototype.trislope = function(mesh, i)
+Eroder.prototype.trislope = function(mesh, tile, i)
 {
     let nbs = this.mesher.neighbours(mesh, i);
     if (nbs.length !== 3) return [0, 0];
-    let p0 = mesh.vxs[nbs[0]];
-    let p1 = mesh.vxs[nbs[1]];
-    let p2 = mesh.vxs[nbs[2]];
+    const p0 = mesh.vxs[nbs[0]];
+    const p1 = mesh.vxs[nbs[1]];
+    const p2 = mesh.vxs[nbs[2]];
 
-    let x1 = p1[0] - p0[0];
-    let x2 = p2[0] - p0[0];
-    let y1 = p1[1] - p0[1];
-    let y2 = p2[1] - p0[1];
+    const x1 = p1[0] - p0[0];
+    const x2 = p2[0] - p0[0];
+    const y1 = p1[1] - p0[1];
+    const y2 = p2[1] - p0[1];
 
-    let det = x1 * y2 - x2 * y1;
-    let h = mesh.buffer;
-    let h1 = h[nbs[1]] - h[nbs[0]];
-    let h2 = h[nbs[2]] - h[nbs[0]];
+    const det = x1 * y2 - x2 * y1;
+    let h = tile.buffer;
+    const h1 = h[nbs[1]] - h[nbs[0]];
+    const h2 = h[nbs[2]] - h[nbs[0]];
 
     return [
         (y2 * h1 - y1 * h2) / det,
@@ -366,16 +366,16 @@ Eroder.prototype.trislope = function(mesh, i)
     ];
 }
 
-Eroder.prototype.getSlope = function(mesh)
+Eroder.prototype.getSlope = function(mesh, tile)
 {
     // let dh = downhill(h);
     // let slope = zero(h.mesh);
-    this.resetSlopeBuffer(mesh.buffer.length);
+    this.resetSlopeBuffer(tile.buffer.length);
     let slope = this.slopeBuffer;
-    let h = mesh.buffer;
+    let h = tile.buffer;
     for (let i = 0; i < h.length; i++)
     {
-        let s = this.trislope(mesh, i);
+        let s = this.trislope(mesh, tile, i);
         slope[i] = Math.sqrt(s[0] * s[0] + s[1] * s[1]);
         // continue;
         // if (dh[i] < 0) {
@@ -384,14 +384,15 @@ Eroder.prototype.getSlope = function(mesh)
         //     slope[i] = (h[i] - h[dh[i]]) / distance(h.mesh, i, dh[i]);
         // }
     }
+
     return slope;
 }
 
-Eroder.prototype.erosionRate = function(mesh)
+Eroder.prototype.erosionRate = function(mesh, tile)
 {
-    let flux = this.getFlux(mesh); // flux buffer
-    let slope = this.getSlope(mesh); // slope buffer
-    let nbTris = mesh.buffer.length;
+    let flux = this.getFlux(mesh, tile); // flux buffer
+    let slope = this.getSlope(mesh, tile); // slope buffer
+    let nbTris = tile.buffer.length;
     this.resetBuffer(nbTris); // this.buffer
     let newh = this.buffer;
     for (let i = 0; i < nbTris; i++)
@@ -405,29 +406,30 @@ Eroder.prototype.erosionRate = function(mesh)
     return newh;
 }
 
-Eroder.prototype.erode = function(mesh, amount)
+Eroder.prototype.erode = function(mesh, tile, amount)
 {
-    let h = mesh.buffer;
-    let er = this.erosionRate(mesh); // this.buffer
+    let h = tile.buffer;
+    let er = this.erosionRate(mesh, tile); // this.buffer
     let maxr = max(er);
     let c = amount / maxr;
 
-    for (let i = 0; i < h.length; i++)
+    const hl = h.length;
+    for (let i = 0; i < hl; i++)
     {
         h[i] = h[i] - c * er[i];
     }
 }
 
-Eroder.prototype.cleanCoastP1 = function(mesh)
+Eroder.prototype.cleanCoastP1 = function(mesh, tile)
 {
     const mesher = this.mesher;
-    let h = mesh.buffer;
+    let h = tile.buffer;
     let nbTris = h.length;
     let newh;
 
     this.resetBuffer(nbTris);
     newh = this.buffer;
-    h = mesh.buffer;
+    h = tile.buffer;
     for (let i = 0; i < h.length; i++) {
         newh[i] = h[i];
         let nbs = mesher.neighbours(mesh, i);
@@ -445,19 +447,19 @@ Eroder.prototype.cleanCoastP1 = function(mesh)
         if (count > 1) continue;
         newh[i] = best / 2;
     }
-    this.swapBuffers(mesh);
+    this.swapBuffers(tile);
 };
 
-Eroder.prototype.cleanCoastP2 = function(mesh)
+Eroder.prototype.cleanCoastP2 = function(mesh, tile)
 {
     const mesher = this.mesher;
-    let h = mesh.buffer;
+    let h = tile.buffer;
     let nbTris = h.length;
     let newh;
 
     this.resetBuffer(nbTris);
     newh = this.buffer;
-    h = mesh.buffer;
+    h = tile.buffer;
     for (let i = 0; i < h.length; i++) {
         newh[i] = h[i];
         let nbs = mesher.neighbours(mesh, i);
@@ -475,20 +477,20 @@ Eroder.prototype.cleanCoastP2 = function(mesh)
         if (count > 1) continue;
         newh[i] = best / 2;
     }
-    this.swapBuffers(mesh);
+    this.swapBuffers(tile);
 };
 
-Eroder.prototype.cleanCoast = function(mesh)
+Eroder.prototype.cleanCoast = function(mesh, tile)
 {
     if (this.cleanCoastPStep === 0)
     {
         const start = window.performance.now();
-        this.cleanCoastP1(mesh);
+        this.cleanCoastP1(mesh, tile);
         const current = window.performance.now();
         const delta = current - start;
 
         if (delta < 3) {
-            this.cleanCoastP2(mesh);
+            this.cleanCoastP2(mesh, tile);
             this.cleanCoastPass++;
         } else {
             this.cleanCoastPStep = 1;
@@ -496,7 +498,7 @@ Eroder.prototype.cleanCoast = function(mesh)
     }
     else if (this.cleanCoastPStep === 1)
     {
-        this.cleanCoastP2(mesh);
+        this.cleanCoastP2(mesh, tile);
         this.cleanCoastPStep = 0;
     }
 }

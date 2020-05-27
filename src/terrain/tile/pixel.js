@@ -25,7 +25,7 @@ let Rasterizer = function(dimension)
 
     // Progressive
     this.step = -1;
-    this.currentTrinangle = 0; // current rasterized triangle
+    this.currentTriangle = 0; // current rasterized triangle
     this.heightPassDone = false;
 };
 
@@ -54,13 +54,13 @@ Rasterizer.prototype.resetBuffers = function(size)
 };
 
 Rasterizer.prototype.computeTriMesh = function(
-    mesh
+    mesh, tile
 )
 {
     // let pts = mesh.pts;
     let tris = mesh.tris;
     let tidx = mesh.triPointIndexes;
-    let values = mesh.buffer;
+    let values = tile.buffer;
     let nbInteriorTris = mesh.nbInteriorTris;
 
     let triMesh = [];
@@ -249,7 +249,7 @@ Rasterizer.prototype.heightPass = function (triMesh)
 
     const start = window.performance.now();
     const nbTris = triMesh.length;
-    const startTri = this.currentTrinangle;
+    const startTri = this.currentTriangle;
     for (let i = startTri; i < nbTris; ++i)
     {
         let t = triMesh[i];
@@ -277,7 +277,7 @@ Rasterizer.prototype.heightPass = function (triMesh)
         if (i === nbTris - 1)
         {
             this.heightPassDone = true;
-            this.currentTrinangle = 0;
+            this.currentTriangle = 0;
             return;
         }
         else
@@ -285,7 +285,7 @@ Rasterizer.prototype.heightPass = function (triMesh)
             const current = window.performance.now();
             const delta = current - start;
             if (i - startTri > 1000 && delta > 5) {
-                this.currentTrinangle = i + 1;
+                this.currentTriangle = i + 1;
                 return;
             }
         }

@@ -44,6 +44,7 @@ let Tile = function(
     this.coordY = coordY;
     this.dimension = dimension;
     this.country = country; // contains pre-computed Voronoi in country.mesh
+    this.buffer = new Float64Array(country.mesh.tris.length);
 
     const tileSeed = `a${coordX},${coordY}`;
 
@@ -84,55 +85,56 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.START:
-            this.fieldModifier.resetBuffer(mesh.tris.length);
-            this.fieldModifier.swapBuffers(mesh);
-            this.fieldModifier.resetBuffer(mesh.tris.length);
+            const bl = mesh.tris.length;
+            this.fieldModifier.resetBuffer(bl);
+            this.fieldModifier.swapBuffers(this);
+            this.fieldModifier.resetBuffer(bl);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_INIT:
             // fieldModifier.addSlope(mesh, terrainGenerator.randomVector(4));
-            fieldModifier.addCone(mesh, terrainGenerator.runif(-1, -1));
-            fieldModifier.addSlope(mesh, this.coordX, this.coordY);
+            fieldModifier.addCone(mesh, this.buffer, -1);
+            fieldModifier.addSlope(mesh, this.buffer, this.coordX, this.coordY);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_MOUNTAINS: // 50 passes to optimize
-            fieldModifier.addMountains(mesh, 5);
+            fieldModifier.addMountains(mesh, this.buffer, 5);
             if (fieldModifier.nbMountains >= 50)
                 this.step++;
             break;
         case STEPS.HEIGHTMAP_RELAX: // relax + peaky + set erosion amount for next pass
             for (let i = 0; i < 10; i++)
-                fieldModifier.relax(mesh);
-            fieldModifier.peaky(mesh);
+                fieldModifier.relax(mesh, this);
+            fieldModifier.peaky(mesh, this.buffer);
             let el = terrainGenerator.runif(0.04, 0.1);
             eroder.setErosionAmount(el);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_EROSION: // fill sinks multiple passes
-            eroder.stepErosion(mesh, 5);
+            eroder.stepErosion(mesh, this, 5);
             // eroder.doErosion(mesh, eroder.amount, 5);
             if (eroder.ready)
                 this.step++;
             break;
         case STEPS.HEIGHTMAP_LEVEL:
             let sl = terrainGenerator.runif(0.2, 0.6);
-            fieldModifier.setSeaLevel(mesh, sl);
+            fieldModifier.setSeaLevel(mesh, this.buffer, sl);
             this.step++;
             break;
         case STEPS.HEIGHTMAP_CLEAN:
             // eroder.fillSinks(mesh);
-            eroder.cleanCoast(mesh);
+            eroder.cleanCoast(mesh, this);
             if (eroder.cleanCoastPass >= 3) // 3 iterations
                 this.step++;
             break;
 
         case STEPS.OBJECTS_CITIES:
-            cityPlacer.placeCities(country, 3);
+            cityPlacer.placeCities(country, this, 3);
             if (cityPlacer.nbCities >= country.params.ncities)
                 this.step++;
             break;
         case STEPS.OBJECTS_RIVERS:
-            country.rivers = cityPlacer.getRivers(country.mesh, 0.01);
+            country.rivers = cityPlacer.getRivers(country.mesh, this, 0.01);
             this.step++;
             break;
         case STEPS.OBJECTS_BORDERS:
@@ -143,7 +145,7 @@ Tile.prototype.stepGeneration = function()
             break;
 
         case STEPS.RASTER_TRIMESH:
-            let triMesh = rasterizer.computeTriMesh(country.mesh);
+            let triMesh = rasterizer.computeTriMesh(country.mesh, this);
             this.triMesh = triMesh;
             rasterizer.initBuffers(triMesh)
             this.step++;

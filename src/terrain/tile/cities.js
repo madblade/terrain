@@ -50,19 +50,19 @@ CityPlacer.prototype.swapBuffers = function(otherObject)
     otherObject.buffer = tempBuffer;
 }
 
-CityPlacer.prototype.cityScore = function(mesh, cities)
+CityPlacer.prototype.cityScore = function(mesh, tile, cities)
 {
     const eroder = this.eroder;
     const mesher = this.mesher;
     const fieldModifier = this.fieldModifier;
 
-    let h = mesh.buffer;
+    let h = tile.buffer;
 
     this.resetBuffer(h.length);
     if (this.fluxBuffer.length !== h.length) {
         this.resetFluxBuffer(h.length);
         let oldFlux = this.fluxBuffer;
-        this.fluxBuffer = eroder.getFlux(mesh);
+        this.fluxBuffer = eroder.getFlux(mesh, tile);
         eroder.fluxBuffer = oldFlux;
     }
 
@@ -70,18 +70,20 @@ CityPlacer.prototype.cityScore = function(mesh, cities)
     // let oldBuffer = this.buffer;
     // this.buffer = eroder.getFlux(mesh); // swap
     // eroder.fluxBuffer = oldBuffer;
-    fieldModifier.apply1D(this, Math.sqrt);
+    fieldModifier.apply1D(mesh, this.buffer, Math.sqrt);
 
     // let score = applyTransform(getFlux(h), Math.sqrt);
     let score = this.buffer;
+    const mew2 = mesh.extent.width / 2;
+    const meh2 = mesh.extent.height / 2;
     for (let i = 0; i < h.length; i++)
     {
         if (h[i] <= 0 || mesher.isnearedge(mesh, i)) {
             score[i] = -999999;
             continue;
         }
-        score[i] += 0.01 / (1e-9 + Math.abs(mesh.vxs[i][0]) - mesh.extent.width/2)
-        score[i] += 0.01 / (1e-9 + Math.abs(mesh.vxs[i][1]) - mesh.extent.height/2)
+        score[i] += 0.01 / (1e-9 + Math.abs(mesh.vxs[i][0]) - mew2)
+        score[i] += 0.01 / (1e-9 + Math.abs(mesh.vxs[i][1]) - meh2)
         for (let j = 0; j < cities.length; j++) {
             score[i] -= 0.02 / (mesher.distance(mesh, cities[j], i) + 1e-9);
         }
@@ -90,34 +92,34 @@ CityPlacer.prototype.cityScore = function(mesh, cities)
     return score;
 }
 
-CityPlacer.prototype.placeCity = function(country)
+CityPlacer.prototype.placeCity = function(country, tile)
 {
     country.cities = country.cities || [];
-    let score = this.cityScore(country.mesh, country.cities);
+    let score = this.cityScore(country.mesh, tile, country.cities);
     let newcity = maxArg(score);
     country.cities.push(newcity);
     this.nbCities++;
 }
 
-CityPlacer.prototype.placeCities = function(country, n)
+CityPlacer.prototype.placeCities = function(country, tile, n)
 {
     // let params = country.params;
     // let n = params.ncities;
     for (let i = 0; i < n; i++)
-        this.placeCity(country);
+        this.placeCity(country, tile);
 }
 
-CityPlacer.prototype.getRivers = function(mesh, limit)
+CityPlacer.prototype.getRivers = function(mesh, tile, limit)
 {
     const eroder = this.eroder;
     const mesher = this.mesher;
 
-    let dh = eroder.downhill(mesh);
-    let h = mesh.buffer;
+    let dh = eroder.downhill(mesh, tile);
+    let h = tile.buffer;
     let vxs = mesh.vxs;
     let flux;
     if (this.fluxBuffer.length === h.length) flux = this.fluxBuffer;
-    else flux = eroder.getFlux(mesh);
+    else flux = eroder.getFlux(mesh, tile);
 
     let links = [];
     let above = 0;
