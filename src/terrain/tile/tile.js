@@ -156,7 +156,7 @@ Tile.prototype.stepGeneration = function()
         case STEPS.RASTER_TRIMESH:
             let triMesh = rasterizer.computeTriMesh(country.mesh, this);
             this.triMesh = triMesh;
-            rasterizer.initBuffers(triMesh)
+            rasterizer.initBuffers()
             this.step++;
             break;
         case STEPS.RASTER_RASTERIZE:
@@ -173,7 +173,7 @@ Tile.prototype.stepGeneration = function()
             this.step++;
             break;
         case STEPS.RASTER_TREE_PASS:
-            rasterizer.treePass(country.mesh);
+            rasterizer.treePass();
             this.step++;
             break;
         case STEPS.RASTER_CITY_PASS:

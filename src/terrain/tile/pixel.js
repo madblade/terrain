@@ -1,5 +1,5 @@
 import { Random }              from './random';
-import { SimplexNoise, TileablePerlinNoise } from './noise';
+import { TileablePerlinNoise } from './noise';
 
 const CHUNK_TREES = Object.freeze({
     NO_TREES: 0,
@@ -13,7 +13,6 @@ let Rasterizer = function(dimension)
     this.dimension = dimension || 512;
     this.chunkHeight = 16;
     this.chunkWidth = 16;
-    this.biomeDimension = this.dimension / this.chunkHeight;
 
     this.heightBuffer = [];
     this.surfaceBuffer = [];
@@ -27,7 +26,6 @@ let Rasterizer = function(dimension)
     this.noiseTileReady = false;
 
     this.rng = new Random('simplex')
-    this.sng = new SimplexNoise(this.rng);
     this.tpng = new TileablePerlinNoise(this.rng);
 
     this.zBuffer = [];
@@ -144,7 +142,7 @@ Rasterizer.prototype.computeTriMesh = function(
 
 Rasterizer.prototype.putPixel = function(x, y, v)
 {
-    let buffer = this.heightBuffer;
+    let buffer = this.surfaceBuffer;
     const w = this.dimension;
     buffer[y * w + x] = v;
 };
@@ -156,7 +154,7 @@ Rasterizer.prototype.drawCircle = function(centerX, centerY, radius)
     let x; let y; let d;
     x = 0; y = radius; d = radius - 1;
 
-    const v = -1;
+    const v = 2;
     while (y >= x)
     {
         this.putPixel(centerX + x, centerY + y, v);
@@ -189,20 +187,13 @@ Rasterizer.prototype.drawCircle = function(centerX, centerY, radius)
 }
 
 // from https://github.com/delphifirst/js-rasterizer
-// Copyright (c) 2016 Yang Cao
+// 2016 Yang Cao
 Rasterizer.prototype.drawTriangle = function(
     v1h0, v1h1, v1h2,
     v2h0, v2h1, v2h2,
     v3h0, v3h1, v3h2
 )
-    // vertex1, vertex2, vertex3
 {
-    // The first element in each vertex is always position
-    // Here the vertex position is homogenized
-    // let v1h = vertex1;
-    // let v2h = vertex2;
-    // let v3h = vertex3;
-
     const minX = Math.min(v1h0, v2h0, v3h0);
     const maxX = Math.max(v1h0, v2h0, v3h0);
     const minY = Math.min(v1h1, v2h1, v3h1);
@@ -238,28 +229,25 @@ Rasterizer.prototype.drawTriangle = function(
 
             if (alpha > 0 && beta > 0 && gamma > 0)
             {
-                const h =  255 * (alpha * v1h2 + beta * v2h2 + gamma * v3h2);
+                // const h = 255 * (alpha * v1h2 + beta * v2h2 + gamma * v3h2);
                 // if (h < 0) h = 255;
-                hb[offset + x] = h;
-                    // h;
+                // hb[offset + x] = h;
+                hb[offset + x] = 255 * (alpha * v1h2 + beta * v2h2 + gamma * v3h2);
             }
         }
     }
 };
 
-Rasterizer.prototype.initBuffers = function(triMesh)
+Rasterizer.prototype.initBuffers = function()
 {
     const width = this.dimension;
     const height =  this.dimension;
     this.heightBuffer = new Int32Array(width * height);
     this.surfaceBuffer = new Uint8Array(width * height);
-    // this.chunkBiomes = new Int32Array(width / this.chunkWidth * height / this.chunkHeight);
 };
 
 Rasterizer.prototype.heightPass = function (triMesh)
 {
-    // this.initBuffers(triMesh);
-
     const width = this.dimension;
     const height =  this.dimension;
 
@@ -367,14 +355,6 @@ Rasterizer.prototype.noisePass = function(factor)
             buffer[offset + x] = b - factor * pattern[offsetNoise + (x % widthN)];
         }
     }
-
-    // TODO compute chunk biome
-    // const chunkW = this.chunkWidth;
-    // const chunkH = this.chunkHeight;
-    // const biomeDimension = this.biomeDimension;
-    // if (x % chunkW === chunkW / 2 && y % chunkH === chunkH / 2) {
-    //     this.chunkBiomes[(x % chunkW) * biomeDimension + y % chunkH] = h > 0 ? 1 : 0;
-    // }
 };
 
 Rasterizer.prototype.riverPass = function(rivers)
@@ -382,6 +362,7 @@ Rasterizer.prototype.riverPass = function(rivers)
     const width = this.dimension;
     const height = this.dimension;
     const nbRivers = rivers.length;
+    const riverHalfWidth = 4;
     for (let i = 0; i < nbRivers; ++i)
     {
         const r = rivers[i];
@@ -399,8 +380,8 @@ Rasterizer.prototype.riverPass = function(rivers)
             const x = x2 - x1;
             const y = y2 - y1;
             const norm = Math.sqrt(x * x + y * y);
-            const nvx = 2 * x / norm;
-            const nvy = 2 * y / norm;
+            const nvx = riverHalfWidth * x / norm;
+            const nvy = riverHalfWidth * y / norm;
 
             const clockwiseX = nvy;
             const clockwiseY = -nvx;
@@ -411,28 +392,28 @@ Rasterizer.prototype.riverPass = function(rivers)
             const upx1 = clockwiseX + x1; const upy1 = clockwiseY + y1;
             const upx2 = clockwiseX + x2; const upy2 = clockwiseY + y2;
             this.drawTriangle(
-                x1, y1, -1,
-                x2, y2, -1,
-                upx1, upy1, -1,
+                x1, y1, -10,
+                x2, y2, -10,
+                upx1, upy1, 0,
             );
             this.drawTriangle(
-                x2, y2, -1,
-                upx1, upy1, -1,
-                upx2, upy2, -1,
+                x2, y2, -10,
+                upx1, upy1, 0,
+                upx2, upy2, 0,
             );
 
             // Rectangle 2 (counterclockwise)
             const dnx1 = counterClockwiseX + x1; const dny1 = counterClockwiseY + y1;
             const dnx2 = counterClockwiseX + x2; const dny2 = counterClockwiseY + y2;
             this.drawTriangle(
-                x1, y1, -1,
-                x2, y2, -1,
-                dnx1, dny1, -1,
+                x1, y1, -10,
+                x2, y2, -10,
+                dnx1, dny1, 0,
             );
             this.drawTriangle(
-                x2, y2, -1,
-                dnx1, dny1, -1,
-                dnx2, dny2, -1,
+                x2, y2, -10,
+                dnx1, dny1, 0,
+                dnx2, dny2, 0,
             );
         }
     }
@@ -443,8 +424,8 @@ Rasterizer.prototype.drawCity = function(cityX, cityY, cityRadius)
     this.drawCircle(cityX, cityY, cityRadius);
     this.drawCircle(cityX, cityY, cityRadius - 1);
     this.drawCircle(cityX, cityY, cityRadius - 2);
-    // TODO voronoi
-    // TODO inside of cities
+    // TODO use voronoi to make inner walls
+    // TODO inside of cities with buildings
 };
 
 Rasterizer.prototype.cityPass = function(mesh, cities)
@@ -469,7 +450,7 @@ Rasterizer.prototype.cityPass = function(mesh, cities)
         cX /= l; cY /= l;
 
         // City draw
-        const cityRadius = i < 5 ? 10 : 5; // nb blocks
+        const cityRadius = i < 5 ? 30 : 15; // nb blocks
         const centerX = ((0.5 + cX) * width - 0.5) >> 0;
         const centerY = ((0.5 + cY) * height - 0.5) >> 0;
         this.drawCity(centerX, centerY, cityRadius);
@@ -522,8 +503,8 @@ Rasterizer.prototype.fillTrees = function(chunkI, chunkJ, nbTrees)
     }
 };
 
-// TODO combine height with per-chunk perlin noise
-Rasterizer.prototype.treePass = function(mesh)
+// TODO combine with height and voronoi
+Rasterizer.prototype.treePass = function()
 {
     const nbChunksX = this.dimension / 16;
     const nbChunksY = this.dimension / 16;

@@ -151,9 +151,9 @@ WorldMap.prototype.makeImageBufferFromRaster = function(
         const v = rb[si] >> 0;
         const t = sb[si] >> 0;
         if (v > 0) {
-            buffer[stride    ] = t !== 1 ? v : 255;
-            buffer[stride + 1] = t !== 1 ? v : 0;
-            buffer[stride + 2] = t !== 1 ? v : 0;
+            buffer[stride    ] = t < 1 ? v : 255;
+            buffer[stride + 1] = t < 1 ? v : 0;
+            buffer[stride + 2] = t < 1 ? v : 0;
         } else {
             buffer[stride    ] = 0;
             buffer[stride + 1] = 0;
