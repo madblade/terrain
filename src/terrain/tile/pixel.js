@@ -180,36 +180,41 @@ Rasterizer.prototype.drawCircle = function(centerX, centerY, radius)
 
 // from https://github.com/delphifirst/js-rasterizer
 // Copyright (c) 2016 Yang Cao
-Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
+Rasterizer.prototype.drawTriangle = function(
+    v1h0, v1h1, v1h2,
+    v2h0, v2h1, v2h2,
+    v3h0, v3h1, v3h2
+)
+    // vertex1, vertex2, vertex3
 {
     // The first element in each vertex is always position
     // Here the vertex position is homogenized
-    let v1h = vertex1;
-    let v2h = vertex2;
-    let v3h = vertex3;
+    // let v1h = vertex1;
+    // let v2h = vertex2;
+    // let v3h = vertex3;
 
-    const minX = Math.min(v1h[0], v2h[0], v3h[0]);
-    const maxX = Math.max(v1h[0], v2h[0], v3h[0]);
-    const minY = Math.min(v1h[1], v2h[1], v3h[1]);
-    const maxY = Math.max(v1h[1], v2h[1], v3h[1]);
+    const minX = Math.min(v1h0, v2h0, v3h0);
+    const maxX = Math.max(v1h0, v2h0, v3h0);
+    const minY = Math.min(v1h1, v2h1, v3h1);
+    const maxY = Math.max(v1h1, v2h1, v3h1);
 
-    const dx12 = v1h[1] - v2h[1];
-    const dy12 = v2h[0] - v1h[0];
-    const dz12 = v1h[0] * v2h[1] - v2h[0] * v1h[1];
+    const dx12 = v1h1 - v2h1;
+    const dy12 = v2h0 - v1h0;
+    const dz12 = v1h0 * v2h1 - v2h0 * v1h1;
 
-    const dx23 = v2h[1] - v3h[1];
-    const dy23 = v3h[0] - v2h[0];
-    const dz23 = v2h[0] * v3h[1] - v3h[0] * v2h[1];
+    const dx23 = v2h1 - v3h1;
+    const dy23 = v3h0 - v2h0;
+    const dz23 = v2h0 * v3h1 - v3h0 * v2h1;
 
-    const dx31 = v3h[1] - v1h[1];
-    const dy31 = v1h[0] - v3h[0];
-    const dz31 = v3h[0] * v1h[1] - v1h[0] * v3h[1];
+    const dx31 = v3h1 - v1h1;
+    const dy31 = v1h0 - v3h0;
+    const dz31 = v3h0 * v1h1 - v1h0 * v3h1;
 
     const startY = Math.floor(minY); const startX = Math.floor(minX);
     const endY = Math.ceil(maxY); const endX = Math.ceil(maxX);
-    const alphaDen = dx23 * v1h[0] + dy23 * v1h[1] + dz23;
-    const betaDen =  dx31 * v2h[0] + dy31 * v2h[1] + dz31;
-    const gammaDen = dx12 * v3h[0] + dy12 * v3h[1] + dz12;
+    const alphaDen = dx23 * v1h0 + dy23 * v1h1 + dz23;
+    const betaDen =  dx31 * v2h0 + dy31 * v2h1 + dz31;
+    const gammaDen = dx12 * v3h0 + dy12 * v3h1 + dz12;
     const width = this.dimension;
     let hb = this.heightBuffer;
     for (let y = startY; y <= endY; ++y)
@@ -223,7 +228,7 @@ Rasterizer.prototype.drawTriangle = function(vertex1, vertex2, vertex3)
 
             if (alpha > 0 && beta > 0 && gamma > 0)
             {
-                const h =  255 * (alpha * v1h[2] + beta * v2h[2] + gamma * v3h[2]);
+                const h =  255 * (alpha * v1h2 + beta * v2h2 + gamma * v3h2);
                 // if (h < 0) h = 255;
                 hb[offset + x] = h;
                     // h;
@@ -257,21 +262,17 @@ Rasterizer.prototype.heightPass = function (triMesh)
         if (t.length !== 3) continue;
 
         this.drawTriangle(
-            [
-                (0.5 + t[0][0]) * width - 0.5,
-                (0.5 + t[0][1]) * height - 0.5,
-                t[0][2]
-            ],
-            [
-                (0.5 + t[1][0]) * width - 0.5,
-                (0.5 + t[1][1]) * height - 0.5,
-                t[1][2]
-            ],
-            [
-                (0.5 + t[2][0]) * width - 0.5,
-                (0.5 + t[2][1]) * height - 0.5,
-                t[2][2]
-            ],
+            (0.5 + t[0][0]) * width - 0.5,
+            (0.5 + t[0][1]) * height - 0.5,
+            t[0][2],
+
+            (0.5 + t[1][0]) * width - 0.5,
+            (0.5 + t[1][1]) * height - 0.5,
+            t[1][2],
+
+            (0.5 + t[2][0]) * width - 0.5,
+            (0.5 + t[2][1]) * height - 0.5,
+            t[2][2],
         );
 
         if (i === nbTris - 1)
@@ -351,7 +352,6 @@ Rasterizer.prototype.noisePass = function(factor)
         for (let x = 0; x < width; ++x)
         {
             const b = buffer[offset + x];
-            // TODO only if >= water level
             if (b < 0) continue;
             buffer[offset + x] = b - factor * pattern[offsetNoise + (x % widthN)];
         }
@@ -377,22 +377,61 @@ Rasterizer.prototype.riverPass = function(rivers)
         const nbSegments = r.length - 1;
         for (let j = 0; j < nbSegments; ++j)
         {
-            let p1 = r[j];
-            let p2 = r[j + 1];
+            const p1 = r[j];
+            const p2 = r[j + 1];
 
-            let pixelA1 = { x: (0.5 + p1[0]) * width - 1.5, y: (0.5 + p1[1]) * height - 1.5, z: -1 };
-            let pixelB1 = { x: (0.5 + p1[0]) * width + 1.5, y: (0.5 + p1[1]) * height + 1.5, z: -1 };
-            let pixelC1 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
+            const x1 = (0.5 + p1[0]) * width;
+            const y1 = (0.5 + p1[1]) * height;
+            const x2 = (0.5 + p2[0]) * width;
+            const y2 = (0.5 + p2[1]) * height;
 
-            // let pixelA2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
-            // let pixelB2 = { x: (0.5 + p1[0]) * width - 0.5, y: (0.5 + p1[1]) * height - 0.5, z: -1 };
-            // let pixelC2 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };j
-            // TODO other triangle + other rectangle + cross product
+            const x = x2 - x1;
+            const y = y2 - y1;
+            const norm = Math.sqrt(x * x + y * y);
+            const nvx = 2 * x / norm;
+            const nvy = 2 * y / norm;
+
+            const clockwiseX = nvy;
+            const clockwiseY = -nvx;
+            const counterClockwiseX = -nvy;
+            const counterClockwiseY = nvx;
+
+            // Rectangle 1 (clockwise)
+            const upx1 = clockwiseX + x1; const upy1 = clockwiseY + y1;
+            const upx2 = clockwiseX + x2; const upy2 = clockwiseY + y2;
             this.drawTriangle(
-                [pixelA1.x, pixelA1.y, pixelA1.z],
-                [pixelB1.x, pixelB1.y, pixelB1.z],
-                [pixelC1.x, pixelC1.y, pixelC1.z],
+                x1, y1, -1,
+                x2, y2, -1,
+                upx1, upy1, -1,
             );
+            this.drawTriangle(
+                x2, y2, -1,
+                upx1, upy1, -1,
+                upx2, upy2, -1,
+            );
+
+            // Rectangle 2 (counterclockwise)
+            const dnx1 = counterClockwiseX + x1; const dny1 = counterClockwiseY + y1;
+            const dnx2 = counterClockwiseX + x2; const dny2 = counterClockwiseY + y2;
+            this.drawTriangle(
+                x1, y1, -1,
+                x2, y2, -1,
+                dnx1, dny1, -1,
+            );
+            this.drawTriangle(
+                x2, y2, -1,
+                dnx1, dny1, -1,
+                dnx2, dny2, -1,
+            );
+
+            // let pixelA1 = { x: (0.5 + p1[0]) * width - 1.5, y: (0.5 + p1[1]) * height - 1.5, z: -1 };
+            // let pixelB1 = { x: (0.5 + p1[0]) * width + 1.5, y: (0.5 + p1[1]) * height + 1.5, z: -1 };
+            // let pixelC1 = { x: (0.5 + p2[0]) * width - 0.5, y: (0.5 + p2[1]) * height - 0.5, z: -1 };
+            // this.drawTriangle(
+            //     [pixelA1.x, pixelA1.y, pixelA1.z],
+            //     [pixelB1.x, pixelB1.y, pixelB1.z],
+            //     [pixelC1.x, pixelC1.y, pixelC1.z],
+            // );
         }
     }
 };
