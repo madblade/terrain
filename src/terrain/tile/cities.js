@@ -43,13 +43,6 @@ CityPlacer.prototype.copyBuffer = function(source, destination)
     }
 };
 
-CityPlacer.prototype.swapBuffers = function(otherObject)
-{
-    let tempBuffer = this.buffer;
-    this.buffer = otherObject.buffer;
-    otherObject.buffer = tempBuffer;
-}
-
 CityPlacer.prototype.cityScore = function(mesh, tile, cities)
 {
     const eroder = this.eroder;

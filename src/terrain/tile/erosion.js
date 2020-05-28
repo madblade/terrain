@@ -20,7 +20,7 @@ let Eroder = function(
 {
     if (!mesher) throw Error('Invalid argument');
 
-    this._indexBuffer = [];
+    // this._indexBuffer = [];
     this.buffer = [];
     this.fluxBuffer = [];
     this.slopeBuffer = [];
@@ -33,13 +33,14 @@ let Eroder = function(
     this.amount = 0;
     this.step = -1;
     this.erosionPass = 0; // current erosion iteration
-    this.fillSinksPass = 0; // current filling sinks iteration
+    // this.fillSinksPass = 0; // current filling sinks iteration
 
     this.doneFillingSinks = false;
     this.isFillingSinks = false;
 
     this.cleanCoastPass = 0;
     this.cleanCoastPStep = 0;
+    this.doAllAtOnce = false;
 }
 
 Eroder.prototype.setErosionAmount = function(amount)
@@ -81,13 +82,13 @@ Eroder.prototype.stepErosion = function(mesh, tile, n)
     }
 };
 
-Eroder.prototype.doErosion = function(mesh, amount, n)
+Eroder.prototype.doErosion = function(mesh, tile, amount, n)
 {
     n = n || 1;
-    this.fillSinks(mesh);
+    this.fillSinks(mesh, tile);
     for (let i = 0; i < n; i++) {
         this.erode(mesh, amount);
-        this.fillSinks(mesh);
+        this.fillSinks(mesh, tile);
     }
 }
 
@@ -165,9 +166,11 @@ Eroder.prototype.downfrom = function(mesh, tile, i)
     return best;
 };
 
-Eroder.prototype.topologicalFill = function(mesh, mesher, hl)
+Eroder.prototype.topologicalFill = function(mesh, tile)
 {
-    let h = mesh.buffer;
+    const mesher = this.mesher;
+    let h = tile.buffer;
+    const hl = h.length;
 
     let swiper = [];
     for (let i = 0; i < hl; ++i) {
@@ -247,15 +250,15 @@ Eroder.prototype.fillSinks = function(mesh, tile, epsilon)
     // hh.sort();
     // for (let i = 0; i < hl; ++i) hh[i] %= 100000;
 
-    // const performQueue = false;
-    // if (performQueue)
-    // {
-    //     const ts1 = window.performance.now();
-    //     this.topologicalFill(mesh, mesher, hl);
-    //     const ts2 = window.performance.now();
-    //     console.log(`BFS: ${Math.floor((ts2 - ts1) * 1000)} ns.`);
-    //     return;
-    // }
+    const performQueue = this.doAllAtOnce;
+    if (performQueue)
+    {
+        // const ts1 = window.performance.now();
+        this.topologicalFill(mesh, tile);
+        // const ts2 = window.performance.now();
+        // console.log(`BFS: ${Math.floor((ts2 - ts1) * 1000)} ns.`);
+        return;
+    }
 
     const start = window.performance.now();
     let changed = false;

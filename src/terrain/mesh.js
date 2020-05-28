@@ -76,10 +76,7 @@ Mesher.prototype.voronoi = function(pts, extent)
     extent = extent || defaultExtent;
     let w = extent.width / 2;
     let h = extent.height / 2;
-    let layout = d3voronoi().extent([[-w, -h], [w, h]])(pts);
-
-    // console.log(layout);
-    return layout;
+    return d3voronoi().extent([[-w, -h], [w, h]])(pts);
 }
 
 Mesher.prototype.makeMesh = function(pts, extent)

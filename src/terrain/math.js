@@ -13,9 +13,7 @@ function quantile2(mesh, q)
     for (let i = 0; i < hl; i++) {
         sortedh[i] = h[i];
     }
-    sortedh.sort(
-        // d3.ascending
-    );
+    sortedh.sort(); // ascending
     return d3quantile(sortedh, q);
 }
 

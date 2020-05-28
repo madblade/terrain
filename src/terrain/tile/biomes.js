@@ -1,7 +1,7 @@
 
 'use strict';
 
-import {Random} from "./random";
+import { Random } from './random';
 
 const BIOMES = Object.freeze({
     NOTHING: -1,

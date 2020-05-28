@@ -10,6 +10,32 @@ let NameGiver = function(languageGenerator)
     this.languageGenerator = languageGenerator;
 };
 
+NameGiver.prototype.giveNames = function(country)
+{
+    const rlg = this.languageGenerator;
+    let lang = rlg.makeRandomLanguage();
+
+    let cities = country.cities;
+    let terr = country.terr;
+    let nterrs = country.params.nterrs;
+
+    if (cities) {
+        let cityNames = [];
+        for (let i = 0; i < cities.length; i++) {
+            cityNames.push(rlg.makeName(lang, 'city'));
+        }
+        country.cityNames = cityNames;
+    }
+
+    if (terr) {
+        let regionNames = [];
+        for (let i = 0; i < nterrs; i++) {
+            regionNames.push(rlg.makeName(lang, 'region'));
+        }
+        country.regionNames = regionNames;
+    }
+};
+
 NameGiver.prototype.terrCenter = function(mesh, terr, city, landOnly)
 {
     let h = mesh.buffer;
@@ -38,8 +64,10 @@ NameGiver.prototype.drawLabels = function(svg, country)
     let cities = country.cities;
     let nterrs = country.params.nterrs;
     let avoids = [country.rivers, country.coasts, country.borders];
-    let lang = rlg.makeRandomLanguage();
     let citylabels = [];
+
+    let cityNames = country.cityNames;
+    let regionNames = country.regionNames;
 
     function penalty(label)
     {
@@ -81,7 +109,7 @@ NameGiver.prototype.drawLabels = function(svg, country)
     {
         let x = mesh.vxs[cities[i]][0];
         let y = mesh.vxs[cities[i]][1];
-        let text = rlg.makeName(lang, 'city');
+        let text = cityNames[i];
         let size = i < nterrs ? params.fontsizes.city : params.fontsizes.town;
         let sx = 0.65 * size / 1000 * text.length;
         let sy = size / 1000;
@@ -151,7 +179,7 @@ NameGiver.prototype.drawLabels = function(svg, country)
     for (let i = 0; i < nterrs; i++)
     {
         let city = cities[i];
-        let text = rlg.makeName(lang, 'region');
+        let text = regionNames[i];
         let sy = params.fontsizes.region / 1000;
         let sx = 0.6 * text.length * sy;
         let lc = this.terrCenter(mesh, terr, city, true);

@@ -1,5 +1,5 @@
 
-import { Random } from './terrain/tile/random';
+import { Random } from '../terrain/tile/random';
 
 let LanguageGenerator = function(seed)
 {

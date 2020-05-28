@@ -179,6 +179,7 @@ SVGDrawer.prototype.drawMap = function(svg, country)
     this.drawPaths(svg, 'border', country.borders);
     this.visualizeSlopes(svg, country.mesh, country.mesh.buffer);
     this.visualizeCities(svg, country);
+    nameGiver.giveNames(country);
     nameGiver.drawLabels(svg, country);
 }
 

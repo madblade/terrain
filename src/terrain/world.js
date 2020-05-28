@@ -59,9 +59,9 @@ WorldMap.prototype.loadTile = function(i, j)
     let t = new Tile(i, j, this.tileDimension, c);
     t.setNoiseTile(this.noiseTile);
 
-    // t.processHeightMap();
-    // t.placeObjects();
-    // t.renderToRaster();
+    t.processHeightMap();
+    t.placeObjects();
+    t.renderToRaster();
     this.tiles.set(`${i},${j}`, t);
 };
 
@@ -113,20 +113,6 @@ WorldMap.prototype.generateIfNeeded = function(scene, camera)
             // tile.presentInScene = false;
         }
     });
-};
-
-WorldMap.prototype.genWorld = function()
-{
-    return new Promise(resolve =>
-    {
-        setTimeout(() =>{
-            // this.loadTile(0, 0);
-            // this.loadTile(0, 1);
-            // this.loadTile(1, 0);
-            // this.loadTile(1, 1);
-            resolve();
-        }, 1);
-    })
 };
 
 WorldMap.prototype.getTiles = function ()
@@ -190,7 +176,7 @@ WorldMap.prototype.addThreeMesh = function(
         let g = new BufferGeometry().setFromPoints(pts);
         let l = new Line(g, m);
         place(l);
-        scene.add(l);
+        // scene.add(l);
     }
 
     // HeightMap
@@ -221,9 +207,9 @@ WorldMap.prototype.addThreeMesh = function(
             // wireframe: true
         }
     );
-    let cube = new Mesh(geometry, material);
-    place(cube);
-    // scene.add(cube);
+    let heightMap = new Mesh(geometry, material);
+    place(heightMap);
+    // scene.add(heightMap);
 
     let dataTexture = new DataTexture(buffer, rasterWidth, rasterHeight, RGBAFormat);
     let p = new Mesh(

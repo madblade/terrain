@@ -4,12 +4,11 @@
 import { Rasterizer }        from './pixel';
 import { FieldModifier }     from './modifier';
 import { Eroder }            from './erosion';
-import { CityPlacer }                      from './cities';
-import { TerrainGenerator } from './terrain';
-import { LanguageGenerator }               from '../../language';
+import { CityPlacer }        from './cities';
+import { TerrainGenerator }  from './terrain';
+import { LanguageGenerator } from '../../language/language';
 import { NameGiver }         from '../names';
 import { Mesher }            from '../mesh';
-import {BiomePlacer} from "./biomes";
 
 const STEPS = Object.freeze({
     WAITING: -1,
@@ -257,16 +256,5 @@ Tile.prototype.getCountry = function()
 {
     return this.country;
 };
-
-Tile.prototype.pack = function()
-{
-    return {
-        country: this.getCountry(),
-        raster: this.getRaster(),
-        triMesh: this.triMesh,
-        x: this.coordX,
-        y: this.coordY
-    }
-}
 
 export { Tile }
