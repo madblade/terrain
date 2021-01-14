@@ -32,6 +32,8 @@ The approach is **interactive** (non-blocking, real-time generation).
 
 - [Discrete circles, rings and spheres](https://doi.org/10.1016/0097-8493(94)90164-3), Eric Andres
 
+- [Fantasy-Map-Generator](https://github.com/Azgaar/Fantasy-Map-Generator), a very complete model generator by Azgaar
+
 # Enhancement
 
 Multiple enhancements would be welcome!
