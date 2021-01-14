@@ -1,5 +1,5 @@
 {
-  "name": "fancy-terrain",
+  "name": "terrain",
   "version": "1.0.0",
   "description": "Fancy alternative to height noise",
   "scripts": {
@@ -8,7 +8,7 @@
     "watch": "webpack serve --mode development --env development --output-public-path=/dist/ --open chrome --hot --watch"
   },
   "keywords": [
-    "fancy procedural generation"
+    "pixel terrain procedural generation"
   ],
   "author": "madblade",
   "license": "MIT",

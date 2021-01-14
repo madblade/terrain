@@ -14,7 +14,7 @@ module.exports = function(env) {
                 template: './src/index.html',
                 favicon: './favicon.ico',
                 baseUrl: env.development ?
-                    '/' : 'https://madblade.github.io/fancy-terrain/'
+                    '/' : 'https://madblade.github.io/terrain/'
             }),
             new webpack.HotModuleReplacementPlugin()
         ],

@@ -25,6 +25,8 @@ let WorldMap = function()
 
     this.rasterizer = new Rasterizer(this.tileDimension);
     this.noiseTile = null;
+
+    this.DEBUG_THREE = false;
 };
 
 WorldMap.prototype.seedWorld = function(seed)
@@ -209,7 +211,8 @@ WorldMap.prototype.addThreeMesh = function(
     );
     let heightMap = new Mesh(geometry, material);
     place(heightMap);
-    // scene.add(heightMap);
+    if (this.DEBUG_THREE)
+        scene.add(heightMap);
 
     let dataTexture = new DataTexture(buffer, rasterWidth, rasterHeight, RGBAFormat);
     let p = new Mesh(

@@ -270,7 +270,7 @@ let TileablePerlinNoise = function(r)
         this.dirs[i] = [Math.cos(i * pi2256), Math.sin(i * pi2256)];
 };
 
-TileablePerlinNoise.prototype.surflet = function(x, y, gridX, gridY, per)
+TileablePerlinNoise.prototype.surflet = function(x, y, gridX, gridY, per)
 {
     const distX = Math.abs(x - gridX);
     const distY = Math.abs(y - gridY);
